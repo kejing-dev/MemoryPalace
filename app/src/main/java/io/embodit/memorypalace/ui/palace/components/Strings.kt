@@ -75,7 +75,7 @@ object PanelSizes {
     const val POCKET_W = 400f
     const val POCKET_H = 248f
     const val LIBRARY_W = 480f
-    const val LIBRARY_H = 520f
+    const val LIBRARY_H = 560f
     const val SETTINGS_W = 420f
     const val SETTINGS_H = 340f
 

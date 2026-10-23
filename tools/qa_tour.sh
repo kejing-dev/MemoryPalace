@@ -5,7 +5,7 @@ set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEV=${DEV:-emulator-5566}
 ids=("$@")
-[ ${#ids[@]} -eq 0 ] && ids=(S01 S02 S03 S04 S04B S05 S06 S07 S08 S09 S10 S11 S12 S13 S14 S15 S16 S17 S18 S19 S20 S21 S22 S23 S24 S25 S26)
+[ ${#ids[@]} -eq 0 ] && ids=(S01 S02 S03 S04 S04B S05 S06 S07 S08 S09 S10 S11 S12 S13 S14 S15 S15W S16 S17 S18 S19 S20 S21 S22 S23 S24 S25 S26 S27 S28 S28B S29 S30 S30B S31)
 bash "$ROOT/tools/dev.sh" cmd hold on >/dev/null
 out="$ROOT/.scratch/shots/tour.txt"
 mkdir -p "$ROOT/.scratch/shots"

@@ -91,4 +91,36 @@ sealed interface PalaceEvent {
     data object Relocate : PalaceEvent
 
     data object TearDown : PalaceEvent
+
+    // ---- v0.2 content sources (S27 - S31)
+    data object NewPalace : PalaceEvent
+
+    /** ‹ on a popup page: one page up (preview -> search -> new palace -> library). */
+    data object PopupBack : PalaceEvent
+
+    data object SourcePoetry : PalaceEvent
+
+    data object SourceWiki : PalaceEvent
+
+    data object SourceFile : PalaceEvent
+
+    data class BuildPack(val id: String) : PalaceEvent
+
+    /** Typed into the search field (searched 300 ms after the last key). */
+    data class WikiQuery(val text: String) : PalaceEvent
+
+    /** Search now (the keyboard's search key, a "try" chip). */
+    data class WikiSearch(val text: String) : PalaceEvent
+
+    data class WikiLang(val lang: String) : PalaceEvent
+
+    data class WikiPick(val title: String, val description: String) : PalaceEvent
+
+    data class WikiToggle(val index: Int) : PalaceEvent
+
+    data object WikiBuild : PalaceEvent
+
+    data object WikiRetry : PalaceEvent
+
+    data object GoPoetry : PalaceEvent
 }

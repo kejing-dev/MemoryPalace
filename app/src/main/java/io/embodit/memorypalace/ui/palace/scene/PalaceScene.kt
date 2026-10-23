@@ -343,7 +343,7 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         ui = state
         val rig = rig ?: return
         rig[PanelIds.POCKET]?.show()
-        if (state.popup == Popup.LIBRARY || state.popup == Popup.IMPORT) rig[PanelIds.LIBRARY]?.show() else rig[PanelIds.LIBRARY]?.hide()
+        if (state.popup != null && state.popup != Popup.SETTINGS) rig[PanelIds.LIBRARY]?.show() else rig[PanelIds.LIBRARY]?.hide()
         if (state.popup == Popup.SETTINGS) rig[PanelIds.SETTINGS]?.show() else rig[PanelIds.SETTINGS]?.hide()
         if (!built) return
         val root = stageRoot ?: return
@@ -653,7 +653,7 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         pocketFollow.step(pose, now, hold)?.let { pocket.moveTo(it) }
         val facing = io.embodit.memorypalace.domain.FacePanel.facing(pocket.position, pose.position, null)
         val pocketH = PanelSizes.POCKET_H * DP_M * POCKET_SCALE
-        if (ui.popup == Popup.LIBRARY || ui.popup == Popup.IMPORT) {
+        if (ui.popup != null && ui.popup != Popup.SETTINGS) {
             val h = PanelSizes.LIBRARY_H * DP_M * POCKET_SCALE
             rig[PanelIds.LIBRARY]?.moveTo(pocket.position + facing.up * (pocketH / 2f + h / 2f + 0.012f) + facing.normal * 0.02f)
         }

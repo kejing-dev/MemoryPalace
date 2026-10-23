@@ -18,5 +18,9 @@ object PalaceGraph {
 
     @Volatile private var store: PalaceStore? = null
 
+    @Volatile private var wikiClient: WikiClient? = null
+
+    fun wiki(context: Context): WikiClient = wikiClient ?: synchronized(this) { wikiClient ?: WikiClient(context.applicationContext).also { wikiClient = it } }
+
     fun store(context: Context): PalaceStore = store ?: synchronized(this) { store ?: FilePalaceStore(context.applicationContext).also { store = it } }
 }

@@ -95,10 +95,17 @@ private fun InkText(text: String, style: TextStyle, color: Color = PalaceColors.
 @Composable
 private fun cardStyle(text: String, small: Boolean = false, big: Boolean = false): TextStyle =
     when {
+        // a Wikipedia sentence: smaller and on more lines (lines() below)
+        text.length > LONG_TEXT -> PalaceType.body.copy(fontSize = 13.sp, lineHeight = 16.sp)
         small || text.length > 10 -> PalaceType.title
         text.length <= 7 -> PalaceType.card.copy(fontSize = if (big) 28.sp else 24.sp, lineHeight = if (big) 34.sp else 30.sp)
         else -> PalaceType.card
     }
+
+private const val LONG_TEXT = 22
+
+/** Lines a card text may take: long sentences wrap further at their smaller size. */
+private fun lines(text: String, short: Int): Int = if (text.length > LONG_TEXT) short + 2 else short
 
 @Composable
 private fun SmallButton(name: String, text: String, icon: Int?, container: Color, modifier: Modifier, onClick: () -> Unit) {
@@ -120,7 +127,9 @@ private fun SmallButton(name: String, text: String, icon: Int?, container: Color
 private fun Back(cell: CellUi, recall: Boolean, width: Float, onEvent: (PalaceEvent) -> Unit) {
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
         InkText(cell.text, PalaceType.label, PalaceColors.InkSecondary, maxLines = 1)
-        InkText(cell.back, cardStyle(cell.back, small = width < 240f), maxLines = 2)
+        InkText(cell.back, cardStyle(cell.back, small = width < 240f), maxLines = if (cell.back.length > LONG_TEXT) 3 else 2)
+        // the credit line (design panels.cardSource): 《春望》· 杜甫, 维基百科《长城》· CC BY-SA 4.0
+        if (cell.source.isNotEmpty()) InkText(cell.source, PalaceType.label.copy(fontSize = 9.sp, lineHeight = 11.sp), PalaceColors.InkSecondary, maxLines = 1)
         Row(modifier = Modifier.fillMaxWidth().padding(end = 0.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             val w = Modifier.weight(1f)
             if (recall) {
@@ -170,7 +179,7 @@ internal fun TitlePanel(open: OpenUi?, mode: Mode?, deck: Int, onTitle: () -> Un
                     else
                         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             InkText(open.title, PalaceType.title, maxLines = 1)
-                            InkText(single.text, cardStyle(single.text, big = true), maxLines = 3)
+                            InkText(single.text, cardStyle(single.text, big = true), maxLines = lines(single.text, 3))
                         }
                     Mark(single, Modifier.align(Alignment.TopEnd))
                 }
@@ -211,7 +220,7 @@ internal fun CellPanel(cell: CellUi?, mode: Mode?, deck: Int, onTap: (String) ->
                 else ->
                     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         InkText(circled(cell.index), PalaceType.label, PalaceColors.InkSecondary, maxLines = 1)
-                        InkText(cell.text, cardStyle(cell.text), maxLines = 2)
+                        InkText(cell.text, cardStyle(cell.text), maxLines = lines(cell.text, 2))
                         if (recall && (cell.done || cell.wrong)) InkText(cell.back, PalaceType.label, PalaceColors.InkSecondary, maxLines = 1)
                     }
             }

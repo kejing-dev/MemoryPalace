@@ -159,41 +159,68 @@ ul.tight li { margin: 2px 0; }
 .tile.down { background: #3a3f4a; color: #fff; }
 .tile.down.next { outline: 2px solid var(--amber); }
 .view .plaque.focus { width: 330px; }
+.factory-back { font-size: 13px; color: var(--ink-2); background: var(--tag); border-radius: 10px; padding: 6px 12px; margin-bottom: 14px; }
+.chg { outline: 2.5px solid var(--jade); outline-offset: 6px; border-radius: 16px; }
+.badge-chg { display: inline-block; font-size: 11.5px; font-weight: 700; color: #10352a; background: var(--jade); border-radius: 99px; padding: 0 8px; margin-left: 6px; vertical-align: 2px; }
+.badge-mod { background: #bfe9d8; }
+details.fold { margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 12px; }
+details.fold > summary { cursor: pointer; font-size: 18px; font-weight: 700; color: var(--ink-2); list-style: none; }
+details.fold > summary::before { content: "▸ "; color: var(--ink-3); }
+details.fold[open] > summary::before { content: "▾ "; }
+details.fold > summary .muted { font-weight: 400; }
+.flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 12px 0 18px; }
+@media (max-width: 760px) { .flow { grid-template-columns: 1fr 1fr; } }
+.flow .st { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; }
+.flow .st b { display: block; font-size: 15px; }
+.flow .st span { font-size: 13px; color: var(--ink-2); }
+.srcdemo { border-radius: 16px; padding: 20px 12px; display: flex; flex-direction: column; align-items: center; gap: 12px; overflow-x: auto; }
+.srcdemo .demo-ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; color: rgba(255,255,255,.8); font-size: 13px; }
+.lib .grp { font-size: 12px; color: rgba(255,255,255,.65); font-weight: 600; margin: 8px 4px 0; }
+.lib .hint { font-size: 13px; color: rgba(255,255,255,.75); margin: 2px 4px; }
+.lib .pv { background: rgba(255,255,255,.08); border-radius: 14px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; }
+.lib .pv .r { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.lib .pv .r .nm { flex: 1; min-width: 0; color: #fff; font-weight: 600; font-size: 15px; }
+.lib .pv .r .ex { color: rgba(255,255,255,.65); font-size: 12.5px; display: block; font-weight: 500; }
+.lib .attrib { font-size: 11.5px; color: rgba(255,255,255,.6); text-align: center; }
+.chiprow { display: flex; gap: 6px; flex-wrap: wrap; }
+.packs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 860px) { .packs { grid-template-columns: 1fr; } }
 </style>
 <main>
   <header>
-    <div class="muted">空间应用黑灯工厂 · 设计站样稿 v2 · memory-palace · 2026-10-21</div>
+    <div class="factory-back">← 回到黑灯工厂面板：点右上角 × 关掉；面板没开就输入 /factory</div>
+    <div class="muted">空间应用黑灯工厂 · 设计站样稿 v0.2 · memory-palace · 2026-10-22</div>
     <h1>记忆宫殿 Memory Palace</h1>
-    <p class="lede">把要背的东西做成一座宫殿：位置贴在自己房间的墙上、桌上，连成一条路线；每个位置能就地展开成一组卡，还能再往里走一层。走到 1 米内才展开、才能翻，走一圈就复习一遍。</p>
+    <p class="lede">把要背的东西做成一座宫殿：位置贴在自己房间的墙上、桌上，连成一条路线；每个位置就地展开成一组卡。开箱就有唐诗、宋词；海外还能从维基百科一键建宫殿。走到 1 米内才展开、才能翻，走一圈就复习一遍。</p>
     <div class="chips">
       <span class="chip">Full Space · Stage 透视（STAGE_MIXED）</span><span class="chip">骨架 D 透视锚点工具</span>
-      <span class="chip">参考仓库 Spatial Ruler</span><span class="chip">宫殿 → 位置 → 子位置 → 卡，最深 3 层</span><span class="chip">SM-2 间隔重复</span><span class="chip">全离线</span><span class="chip">中 / 英</span>
+      <span class="chip">宫殿 → 位置 → 子位置 → 卡，最深 3 层</span><span class="chip">SM-2 间隔重复</span><span class="chip">诗词离线 · 百科联网（只做海外）</span><span class="chip">中 / 英</span>
       <span class="chip">只有一个手势：指 + 捏</span>
     </div>
     <div class="changes">
-      <b class="t">本次改了什么（回应「memory 需要能展开，嵌套结构，才是真正的宫殿结构」）</b>
+      <b class="t">v0.2 本次只看这几处（真机反馈：「需要链接一个比如 wiki pedia，中国大陆也看看链接什么，现在内容不行……比如诗词也行」）</b>
       <ul>
-        <li>结构从「一张卡一个位置」改成 <b>宫殿 → 位置 → 子位置 → 卡</b>，最深 3 层，每层最多 8 个</li>
-        <li>走进位置 1 米内，它<b>就地展开</b>成一组卡；捏一个子位置就<b>进入</b>下一层，↩ 返回；走开 1.2 米自动收起</li>
-        <li>只有第 1 层位置要贴，里面的卡自动排在位置牌下面：布置从「每张卡贴一次」变成「每个位置贴一次」</li>
-        <li>顺序走一遍分两级：先按路线走位置，再按 ①②③ 回忆位置里的东西</li>
-        <li>导入支持分组：CSV 加一列「先秦/周」，或者 Anki 的「中国朝代::先秦::周」</li>
+        <li><a href="#sources">§2 内容来源（新）</a>：挑内容 → 建成宫殿 → 布置 → 复习，可以直接点着试</li>
+        <li><b>离线诗词包</b>：唐诗名篇（5 位诗人 · 14 首 · 34 张卡）、宋词名篇（4 位词人 · 6 首 · 25 张卡）；位置 = 诗人，子位置 = 一首，卡 = 上句 → 下句。<b>默认第一座宫殿改成唐诗名篇</b>，<a href="#try">§1 试走</a>已换成它</li>
+        <li><b>维基百科一键建宫殿（只做海外）</b>：搜索 → 预览（按章节生成位置和挖空卡，可勾选）→ 建成；卡背署名 CC BY-SA 4.0</li>
+        <li><b>中国大陆</b>：查过百度百科、天行数据、千帆 AppBuilder，没有可用、条款允许的在线百科接口，大陆不接；连不上维基时提示并引导到诗词包</li>
+        <li>新状态 <a href="#S27">S27</a>–<a href="#S31">S31</a>；<a href="#S02">S02</a> <a href="#S03">S03</a> <a href="#S04">S04</a> <a href="#S15">S15</a> 小改（绿框）；新增联网权限，只给维基百科用</li>
+        <li>没改的部分（空间布局、位置牌、面板规格、色板、取舍）折叠在页底</li>
       </ul>
     </div>
     <div class="gate">
-      <b>门 B · 方案确认。</b> 看完后在这页评论「过」，或者「改：&lt;意见&gt;」。也可以在面板点 [继续] 或在总控聊天里说。
-      <div class="muted" style="margin-top:4px">仍待你顺手定：系统文件选择器在 PICO OS 6 上若不可用，要不要加「手机浏览器局域网上传」作为导入兜底（会多一个网络权限）？默认：不加。</div>
+      <b>门 B · 只看高亮的变化处：</b> 评论「过」或「改：&lt;意见&gt;」。也可以在面板点 [继续] 或在总控聊天里说。
+      <div class="muted" style="margin-top:4px">两个顺手定的问题（不答就按默认）：① 大陆版要不要接一个付费诗词 API（如天行数据，要 key 和费用）扩充诗词？默认不接，离线包够用。② 选品知识库 D1「摇杆旋转 + 吸附」我判为不适用：位置牌贴在表面上会自动朝外，没有自由摆放的物体。要加就说。</div>
     </div>
     <nav class="toc">
-      <a href="#try">1 试走一圈</a><a href="#structure">2 宫殿结构</a><a href="#overview">3 状态总览</a><a href="#space">4 空间布局</a>
-      <a href="#card">5 位置牌与子卡</a><a href="#screens">6 每个状态一屏</a><a href="#panels">7 面板规格</a>
-      <a href="#style">8 色板与字体</a><a href="#why">9 为什么这样做</a>
+      <a href="#try">1 试走一圈</a><a href="#sources">2 内容来源（新）</a><a href="#structure">3 宫殿结构</a><a href="#overview">4 状态总览</a>
+      <a href="#screens">5 每个状态一屏</a><a href="#space">· 未改动的部分</a>
     </nav>
   </header>
 
-  <section id="try">
+  <section id="try" class="chg">
     <h2>1 · 试走一圈</h2>
-    <p class="muted">俯视一间 4.2 × 3.6 m 的房间，「中国朝代」5 个位置已经贴好。点地板就走过去（或用方向键）；点光点 = 对着那个位置捏一下。走到位置 1 米内它会展开；在右边点卡片翻面，点带 ▸ 的子位置进入下一层。右下是随身面板（1 dp = 1 px）。</p>
+    <p class="muted">俯视一间 4.2 × 3.6 m 的房间，默认宫殿「唐诗名篇」5 个位置（5 位诗人）已经贴好。走到「杜甫」展开，点《春望》进入，再点亮着的卡翻面。点地板就走过去（或用方向键）；点光点 = 对着那个位置捏一下。右下是随身面板（1 dp = 1 px）。</p>
     <div class="walk">
       <div class="walk-map"><svg id="map" viewBox="-40 -40 500 440" role="img" aria-label="房间俯视图"></svg></div>
       <div class="walk-side room-bg">
@@ -210,10 +237,50 @@ ul.tight li { margin: 2px 0; }
     </div>
   </section>
 
-  <section id="structure">
-    <h2>2 · 宫殿结构</h2>
+  <section id="sources" class="chg">
+    <h2>2 · 内容来源<span class="badge-chg">新</span></h2>
+    <p class="muted">三条入口都在宫殿库右上的「＋ 新宫殿」里。建成以后和别的宫殿一样：布置时只贴第 1 层位置，里面的卡自动排好，然后复习或顺序走一遍。</p>
+    <div class="flow">
+      <div class="st"><b>① 挑内容</b><span>📜 诗词（离线）· 🌐 维基百科（联网，海外）· 📂 文件</span></div>
+      <div class="st"><b>② 建成宫殿</b><span>诗词：一首诗一个子位置；百科：一个章节一个位置</span></div>
+      <div class="st"><b>③ 布置</b><span>每个位置贴一次，墙上或桌上</span></div>
+      <div class="st"><b>④ 复习 / 顺序走一遍</b><span>走到 1 米内才展开、才能翻</span></div>
+    </div>
     <div class="grid2">
-      <div class="card"><h3>三个预置宫殿（点 ▸ 展开 / 收起）</h3><div class="tree-tools"><sui-button size="min" text="全部展开" id="treeOpen"></sui-button><sui-button size="min" text="全部收起" id="treeClose"></sui-button></div><div class="tree" id="tree" role="tree"></div></div>
+      <div class="room-bg srcdemo">
+        <div class="demo-ctl">演示网络：<sui-segment-control id="netSeg" options="海外网络,中国大陆网络" selected-index="0" size="small"></sui-segment-control></div>
+        <div id="srcPanel"></div>
+      </div>
+      <div class="card"><h3>怎么用（点左边的面板试）</h3><ul class="tight">
+        <li>宫殿库右上「＋ 新宫殿」→ 三行：<b>诗词</b> / <b>维基百科</b> / <b>从文件导入</b></li>
+        <li><b>诗词</b>：唐诗名篇、宋词名篇两本，点「建成宫殿」就进主页，「0 / 5 个位置已布置」→ 开始布置</li>
+        <li><b>维基百科</b>：输入关键词（系统键盘）或点「试试」→ 选条目 → 预览要生成的位置和卡，取消不要的位置 → 「建成宫殿」</li>
+        <li>挖空卡：正面是条目里的一句话，把第一个内链词换成「＿＿」；背面是那个词和原句</li>
+        <li>建好的宫殿存在本地，之后复习不用联网；每张卡背面有出处一行</li>
+        <li>把左上开关切到「中国大陆网络」再点维基百科，看连不上时的样子</li></ul>
+        <h3 style="margin-top:12px">维基百科怎么生成</h3><ul class="tight">
+        <li>位置：「概述」+ 每个一级章节一个，最多 8 个；跳过参见、参考文献、外部链接、注释</li>
+        <li>卡：每个位置最多 6 张、整座最多 40 张；少于 5 张就提示「这个条目太短，换一个」</li>
+        <li>只有 2 层（位置 → 卡），不生成子位置</li>
+        <li>界面中文查 zh.wikipedia（简体），英文查 en.wikipedia；预览页可切</li></ul>
+        <p class="muted">演示里的维基内容是示例写法，实际卡片由条目原文生成。</p></div>
+    </div>
+    <div class="packs" style="margin-top:20px">
+      <div class="card"><h3>离线诗词包（点 ▸ 展开）</h3><div class="tree" id="packTree" role="tree"></div>
+        <p class="muted">只收原文（公有领域），不带现代注释、译文和赏析。全文在设计包 contentSources.poetryPack 里逐字给出。</p></div>
+      <div class="card"><h3>中国大陆查了什么</h3><ul class="tight">
+        <li>百度百科：没有面向第三方的官方开放 API，网上流传的接口是非官方的，不用</li>
+        <li><a href="https://www.tianapi.com/list/">天行数据</a>：有唐诗、宋词、词典、百科题库，没有百科条目查询；要 key、按次收费</li>
+        <li><a href="https://ai.baidu.com/ai-doc/AppBuilder/Plz14lrtx">千帆 AppBuilder</a>：大模型应用平台，不是百科条目接口</li>
+        <li>结论：本版维基百科只做海外；大陆用户用诗词包、预置宫殿和文件导入</li>
+        <li>维基百科：不需要 key；每个请求带 User-Agent，单次建宫殿 ≤ 3 个请求；文字许可 CC BY-SA 4.0，所以卡背署名</li></ul></div>
+    </div>
+  </section>
+
+  <section id="structure">
+    <h2>3 · 宫殿结构</h2>
+    <div class="grid2">
+      <div class="card"><h3>宫殿库里的宫殿（点 ▸ 展开 / 收起）</h3><div class="tree-tools"><sui-button size="min" text="全部展开" id="treeOpen"></sui-button><sui-button size="min" text="全部收起" id="treeClose"></sui-button></div><div class="tree" id="tree" role="tree"></div></div>
       <div class="card"><h3>规则</h3><ul class="tight">
         <li><b>宫殿</b> = 一个牌组 = 房间里一条路线，最多 20 个位置、120 张卡</li>
         <li><b>位置</b>（第 1 层）贴在真实表面上，占一个锚点，按布置顺序连线</li>
@@ -226,14 +293,23 @@ ul.tight li { margin: 2px 0; }
   </section>
 
   <section id="overview">
-    <h2>3 · 状态总览</h2>
-    <p class="muted">26 个状态，QA 站按名字截图。点编号跳到那一屏。</p>
+    <h2>4 · 状态总览</h2>
+    <p class="muted">31 个状态（S27–S31 新增，绿底是这次变化处），QA 站按名字截图。点编号跳到那一屏。</p>
     <div class="tablewrap"><table id="stateTable"><thead><tr><th>编号</th><th>名字</th><th>怎么到达</th><th>QA 怎么截</th></tr></thead><tbody></tbody></table></div>
   </section>
 
-  <section id="space">
-    <h2>4 · 空间布局（单位：米）</h2>
-    <div class="grid2">
+
+
+
+
+  <section id="screens">
+    <h2>5 · 每个状态一屏</h2>
+    <p class="muted">左：视野示意（透视房间，3D 内容按比例示意）。右：这一态的面板，1 dp = 1 px，玻璃是系统 Material.Regular。</p>
+    <div class="states" id="states"></div>
+  </section>
+
+  <details class="fold" id="space"><summary>空间布局 <span class="muted">· 未改动（v2），点开看</span></summary>
+        <div class="grid2">
       <div class="diagram"><svg id="topView" viewBox="0 0 520 420" role="img" aria-label="俯视图"></svg></div>
       <div class="diagram"><svg id="sideView" viewBox="0 0 520 420" role="img" aria-label="侧视图"></svg></div>
     </div>
@@ -248,11 +324,9 @@ ul.tight li { margin: 2px 0; }
         <li><b>路线顺序回忆</b>：顺序走一遍时只有下一个位置能展开；揭开位置名后，格子里只有下一张能翻；下一个是子位置就进入，按顺序回忆完自动回来</li>
         <li>同一时刻只展开一个位置</li></ul></div>
     </div>
-  </section>
-
-  <section id="card">
-    <h2>5 · 位置牌与子卡</h2>
-    <p class="muted">位置牌 0.22 × 0.14 m，瓷白小牌，顶上一颗黄铜图钉；展开时它升起来当标题，子卡（0.16 × 0.10 m）在下面铺开。远处只看到光点，站在房间中央扫不到内容。</p>
+  </details>
+  <details class="fold" id="card"><summary>位置牌与子卡 <span class="muted">· 未改动（v2），点开看</span></summary>
+        <p class="muted">位置牌 0.22 × 0.14 m，瓷白小牌，顶上一颗黄铜图钉；展开时它升起来当标题，子卡（0.16 × 0.10 m）在下面铺开。远处只看到光点，站在房间中央扫不到内容。</p>
     <div class="lod">
       <div class="cell"><svg width="120" height="80" viewBox="-60 -40 120 80" id="lodFar"></svg><b>&gt; 3 m · 光点 + 到期数</b><span>只看得出这里有几张要复习</span></div>
       <div class="cell"><svg width="140" height="80" viewBox="-70 -40 140 80" id="lodMid"></svg><b>1 – 3 m · 号码 + 位置名 + 距离</b><span>知道是哪个位置、还差多远</span></div>
@@ -262,17 +336,10 @@ ul.tight li { margin: 2px 0; }
       <div class="card room-bg" style="display:flex;justify-content:center;padding:24px 12px" id="cardOpen"></div>
       <div class="card room-bg" style="display:flex;justify-content:center;padding:24px 12px" id="cardInside"></div>
     </div>
-  </section>
+  </details>
 
-  <section id="screens">
-    <h2>6 · 每个状态一屏</h2>
-    <p class="muted">左：视野示意（透视房间，3D 内容按比例示意）。右：这一态的面板，1 dp = 1 px，玻璃是系统 Material.Regular。</p>
-    <div class="states" id="states"></div>
-  </section>
-
-  <section id="panels">
-    <h2>7 · 面板规格</h2>
-    <div class="tablewrap"><table>
+  <details class="fold" id="panels"><summary>面板规格 <span class="muted">· 未改动（v2），点开看</span></summary>
+        <div class="tablewrap"><table>
       <thead><tr><th>面板</th><th>位置</th><th>尺寸（dp）</th><th>实物（m）</th><th>内容</th></tr></thead>
       <tbody>
         <tr><td>随身面板</td><td>视野左下，距眼 0.75 m，下 20°、左 25°；转头 &gt; 35° 才跟过去</td><td>400 × 240（200–300 高）</td><td>0.24 × 0.14</td><td>宫殿签 + ⚙ / 大字 + 说明 / 主按钮 + 至多两个图标键；进行中换成进度 + 面包屑 + ↩ + ✕</td></tr>
@@ -282,11 +349,10 @@ ul.tight li { margin: 2px 0; }
         <tr><td>展开的位置</td><td>位置牌处（面板池 9 块）</td><td>标题 1 块 + 子卡 ≤ 8 块</td><td>标题 0.22 × 0.14；子卡 0.16 × 0.10</td><td>面包屑标题 + 4 × 2 格子；翻面后答案 + 评分键</td></tr>
       </tbody></table></div>
     <p class="muted" style="margin-top:8px">同时最多 17 块面板（随身 1 + 弹出 1 + 展开池 9 + 号码签 6），只有展开的那一个位置用到展开池。3D：≤ 20 位置牌 + 20 光点 + 8 子卡 + 26 段线 + 1 准星，全部代码生成。</p>
-  </section>
+  </details>
 
-  <section id="style">
-    <h2>8 · 色板与字体</h2>
-    <p class="muted">SpatialUI vibrant 配色 + 根面系统玻璃。只改 4 个语义角色，其余 12 个继承 vibrant。</p>
+  <details class="fold" id="style"><summary>色板与字体 <span class="muted">· 未改动（v2），点开看</span></summary>
+        <p class="muted">SpatialUI vibrant 配色 + 根面系统玻璃。只改 4 个语义角色，其余 12 个继承 vibrant。</p>
     <div class="swatches" id="swatches"></div>
     <div class="card" style="margin-top:14px">
       <h3>字体：Noto Sans + Noto Sans SC（打包进应用）</h3>
@@ -298,11 +364,10 @@ ul.tight li { margin: 2px 0; }
         <tr><td>labelLarge 14/18 · labelMedium 12/16</td><td>面包屑 · 号码徽章、签</td></tr>
       </tbody></table>
     </div>
-  </section>
+  </details>
 
-  <section id="why">
-    <h2>9 · 为什么这样做</h2>
-    <div class="grid2">
+  <details class="fold" id="why"><summary>为什么这样做 <span class="muted">· 未改动（v2），点开看</span></summary>
+        <div class="grid2">
       <div class="card"><h3>从哪儿搬来</h3><ul class="tight">
         <li><b>Anki</b>：牌组与子牌组（::）、翻面—评分、SM-2、今日待复习数（只借算法）</li>
         <li><b>SpatialFlashcards（Quest）</b>：透视里翻卡、导入文本卡</li>
@@ -324,7 +389,7 @@ ul.tight li { margin: 2px 0; }
         <tr><td>顺序</td><td>列表顺序没有空间感</td><td>发光的线连起位置，顺序靠走过的路记住</td></tr>
       </tbody></table></div>
     <div class="card" style="margin-top:16px"><h3>设计评审（2 轮）与门 B 修改</h3><ul class="tight" id="reviewList"></ul></div>
-  </section>
+  </details>
 </main>
 
 <script>
@@ -4057,8 +4122,31 @@ function btn(text, opts) {
 function t(variant, text, color) { return '<sui-text variant="' + variant + '" text="' + esc(text) + '"' + (color ? ' color="' + color + '"' : "") + "></sui-text>"; }
 function deckChip(name, color) { return '<sui-chip size="regular" label="' + esc(name) + '" leading-icon="●" data-act="lib"></sui-chip>'; }
 
-/* ---------- palace data (preset 中国朝代) ---------- */
+/* ---------- palace data (default palace 唐诗名篇 = design contentSources.poetryPack.packs[0]) ---------- */
+var PALACE_NAME = "唐诗名篇";
 var PALACE = [
+  { t: "李白", x: 0.00, z: 1.70, h: 1.45, kids: [
+    { t: "《静夜思》", kids: [{ f: "床前明月光", b: "疑是地上霜", src: "《静夜思》 · 李白" }, { f: "举头望明月", b: "低头思故乡", src: "《静夜思》 · 李白" }] },
+    { t: "《望庐山瀑布》", kids: [{ f: "日照香炉生紫烟", b: "遥看瀑布挂前川", src: "《望庐山瀑布》 · 李白" }, { f: "飞流直下三千尺", b: "疑是银河落九天", src: "《望庐山瀑布》 · 李白" }] },
+    { t: "《早发白帝城》", kids: [{ f: "朝辞白帝彩云间", b: "千里江陵一日还", src: "《早发白帝城》 · 李白" }, { f: "两岸猿声啼不住", b: "轻舟已过万重山", src: "《早发白帝城》 · 李白" }] } ] },
+  { t: "杜甫", x: 1.30, z: 0.00, h: 1.50, kids: [
+    { t: "《春望》", kids: [{ f: "国破山河在", b: "城春草木深", src: "《春望》 · 杜甫" }, { f: "感时花溅泪", b: "恨别鸟惊心", src: "《春望》 · 杜甫" }, { f: "烽火连三月", b: "家书抵万金", src: "《春望》 · 杜甫" }, { f: "白头搔更短", b: "浑欲不胜簪", src: "《春望》 · 杜甫" }] },
+    { t: "《绝句》", kids: [{ f: "两个黄鹂鸣翠柳", b: "一行白鹭上青天", src: "《绝句》 · 杜甫" }, { f: "窗含西岭千秋雪", b: "门泊东吴万里船", src: "《绝句》 · 杜甫" }] },
+    { t: "《春夜喜雨》", kids: [{ f: "好雨知时节", b: "当春乃发生", src: "《春夜喜雨》 · 杜甫" }, { f: "随风潜入夜", b: "润物细无声", src: "《春夜喜雨》 · 杜甫" }, { f: "野径云俱黑", b: "江船火独明", src: "《春夜喜雨》 · 杜甫" }, { f: "晓看红湿处", b: "花重锦官城", src: "《春夜喜雨》 · 杜甫" }] } ] },
+  { t: "王维", x: 2.45, z: 0.00, h: 1.40, kids: [
+    { t: "《鹿柴》", kids: [{ f: "空山不见人", b: "但闻人语响", src: "《鹿柴》 · 王维" }, { f: "返景入深林", b: "复照青苔上", src: "《鹿柴》 · 王维" }] },
+    { t: "《相思》", kids: [{ f: "红豆生南国", b: "春来发几枝", src: "《相思》 · 王维" }, { f: "愿君多采撷", b: "此物最相思", src: "《相思》 · 王维" }] },
+    { t: "《九月九日忆山东兄弟》", kids: [{ f: "独在异乡为异客", b: "每逢佳节倍思亲", src: "《九月九日忆山东兄弟》 · 王维" }, { f: "遥知兄弟登高处", b: "遍插茱萸少一人", src: "《九月九日忆山东兄弟》 · 王维" }] } ] },
+  { t: "白居易", x: 4.20, z: 1.20, h: 1.50, kids: [
+    { t: "《赋得古原草送别》", kids: [{ f: "离离原上草", b: "一岁一枯荣", src: "《赋得古原草送别》 · 白居易" }, { f: "野火烧不尽", b: "春风吹又生", src: "《赋得古原草送别》 · 白居易" }, { f: "远芳侵古道", b: "晴翠接荒城", src: "《赋得古原草送别》 · 白居易" }, { f: "又送王孙去", b: "萋萋满别情", src: "《赋得古原草送别》 · 白居易" }] },
+    { t: "《暮江吟》", kids: [{ f: "一道残阳铺水中", b: "半江瑟瑟半江红", src: "《暮江吟》 · 白居易" }, { f: "可怜九月初三夜", b: "露似真珠月似弓", src: "《暮江吟》 · 白居易" }] } ] },
+  { t: "诸家", x: 2.60, z: 3.60, h: 1.50, kids: [
+    { t: "《登鹳雀楼》", kids: [{ f: "白日依山尽", b: "黄河入海流", src: "《登鹳雀楼》 · 王之涣" }, { f: "欲穷千里目", b: "更上一层楼", src: "《登鹳雀楼》 · 王之涣" }] },
+    { t: "《春晓》", kids: [{ f: "春眠不觉晓", b: "处处闻啼鸟", src: "《春晓》 · 孟浩然" }, { f: "夜来风雨声", b: "花落知多少", src: "《春晓》 · 孟浩然" }] },
+    { t: "《出塞》", kids: [{ f: "秦时明月汉时关", b: "万里长征人未还", src: "《出塞》 · 王昌龄" }, { f: "但使龙城飞将在", b: "不教胡马度阴山", src: "《出塞》 · 王昌龄" }] } ] }
+];
+var SONG = [{"t": "苏轼", "kids": [{"t": "《水调歌头·明月几时有》", "kids": [{"f": "明月几时有", "b": "把酒问青天"}, {"f": "不知天上宫阙", "b": "今夕是何年"}, {"f": "我欲乘风归去", "b": "又恐琼楼玉宇，高处不胜寒"}, {"f": "起舞弄清影", "b": "何似在人间"}, {"f": "转朱阁，低绮户", "b": "照无眠"}, {"f": "不应有恨", "b": "何事长向别时圆"}, {"f": "人有悲欢离合", "b": "月有阴晴圆缺，此事古难全"}, {"f": "但愿人长久", "b": "千里共婵娟"}]}]}, {"t": "李清照", "kids": [{"t": "《如梦令·常记溪亭日暮》", "kids": [{"f": "常记溪亭日暮", "b": "沉醉不知归路"}, {"f": "兴尽晚回舟", "b": "误入藕花深处"}, {"f": "争渡，争渡", "b": "惊起一滩鸥鹭"}]}, {"t": "《如梦令·昨夜雨疏风骤》", "kids": [{"f": "昨夜雨疏风骤", "b": "浓睡不消残酒"}, {"f": "试问卷帘人", "b": "却道海棠依旧"}, {"f": "知否，知否", "b": "应是绿肥红瘦"}]}]}, {"t": "辛弃疾", "kids": [{"t": "《西江月·夜行黄沙道中》", "kids": [{"f": "明月别枝惊鹊", "b": "清风半夜鸣蝉"}, {"f": "稻花香里说丰年", "b": "听取蛙声一片"}, {"f": "七八个星天外", "b": "两三点雨山前"}, {"f": "旧时茅店社林边", "b": "路转溪桥忽见"}]}, {"t": "《丑奴儿·书博山道中壁》", "kids": [{"f": "少年不识愁滋味", "b": "爱上层楼"}, {"f": "爱上层楼", "b": "为赋新词强说愁"}, {"f": "而今识尽愁滋味", "b": "欲说还休"}, {"f": "欲说还休", "b": "却道天凉好个秋"}]}]}, {"t": "晏殊", "kids": [{"t": "《浣溪沙·一曲新词酒一杯》", "kids": [{"f": "一曲新词酒一杯", "b": "去年天气旧亭台"}, {"f": "夕阳西下几时回", "b": "无可奈何花落去"}, {"f": "似曾相识燕归来", "b": "小园香径独徘徊"}]}]}];
+var DYNASTIES = [
   { t: "先秦", x: 0.00, z: 1.70, h: 1.45, kids: [
     { f: "约前 2070 年", b: "夏 · 传说中的第一个王朝" },
     { f: "约前 1600 年", b: "商 · 甲骨文" },
@@ -4073,7 +4161,7 @@ var PALACE = [
     { f: "960 年", b: "宋 · 活字印刷" }, { f: "1271 年", b: "元 · 定都大都" }, { f: "1368 年", b: "明 · 郑和下西洋" }, { f: "1644 年", b: "清 · 入关定都北京" } ] }
 ];
 (function assignIds(list, prefix) { list.forEach(function (n, i) { n.id = prefix + i; if (n.kids) assignIds(n.kids, n.id + "-"); }); })(PALACE, "");
-var DUE = ["0-0", "0-2-1", "1-0", "1-2", "3-1", "4-0", "4-2"];
+var DUE = ["0-0-0", "0-0-1", "1-0-0", "1-0-1", "1-2-2", "3-0-0", "4-1-0"];
 function leaves(n) { return n.kids ? n.kids.reduce(function (a, k) { return a.concat(leaves(k)); }, []) : [n]; }
 function nodeAt(path) { var n = PALACE[path[0]]; for (var i = 1; i < path.length; i++) n = n.kids[path[i]]; return n; }
 var ALL_LEAVES = PALACE.reduce(function (a, l) { return a.concat(leaves(l)); }, []);
@@ -4081,7 +4169,7 @@ var ALL_LEAVES = PALACE.reduce(function (a, l) { return a.concat(leaves(l)); }, 
 /* ---------- panels ---------- */
 function pocketHome(o) {
   return '<div class="pocket glass">' +
-    '<div class="row sp">' + deckChip(o.deck || "中国朝代") + ib("gear", { size: "min", label: "设置", data: "settings" }) + "</div>" +
+    '<div class="row sp">' + deckChip(o.deck || PALACE_NAME) + ib("gear", { size: "min", label: "设置", data: "settings" }) + "</div>" +
     '<div class="mid">' + (o.mid || "") + "</div>" +
     '<div class="row">' + (o.primary || "") + '<span class="grow"></span>' + (o.icons || "") + "</div></div>";
 }
@@ -4198,13 +4286,13 @@ var STATES = [
  { id: "S01", name: "扫描房间", reach: "每次启动（找到 ≥1 个可贴表面就离开）", qa: "启动后 2 s 内截；模拟器房间应在 10 s 内离开",
    scene: function () { return '<path d="M90,230 L470,230 M90,30 L90,230" stroke="' + C.amber + '" stroke-width="2" stroke-dasharray="4 6"/>' + pill(280, 210, "正在识别墙和桌面…"); },
    panel: function () { return pocketMsg({ top: ib("scan", { size: "min", label: "扫描" }) + t("titleMedium", "慢慢看看四周"), mid: t("bodyMedium", "已找到 0 个表面", "rgba(255,255,255,.8)") + '<div style="height:10px"></div><sui-linear-progress indeterminate size="regular"></sui-linear-progress><div style="height:8px"></div>' + t("bodyMedium", "15 秒后：靠近墙面、开灯试试", "rgba(255,255,255,.55)"), foot: btn("先进去", { primary: false, size: "small" }) }); } },
- { id: "S02", name: "主页·空宫殿", reach: "当前宫殿还没有位置贴进房间（首次默认「中国朝代」）", qa: "首次进入默认态",
+ { id: "S02", name: "主页·空宫殿", reach: "当前宫殿还没有位置贴进房间（v0.2 起首次默认「唐诗名篇」）", qa: "首次进入默认态：宫殿签是唐诗名篇",
    scene: function () { return ""; },
-   panel: function () { return pocketHome({ mid: bigNum("0 / 5", "个位置已布置") + t("bodyMedium", "17 张卡，最深 3 层", "rgba(255,255,255,.7)"), primary: btn("开始布置"), icons: ib("route", { label: "顺序走一遍", disabled: true }) }); } },
- { id: "S03", name: "宫殿库", reach: "点随身面板的宫殿签", qa: "截全貌，至少能看到 3 个预置行",
+   panel: function () { return pocketHome({ mid: bigNum("0 / 5", "个位置已布置") + t("bodyMedium", "5 位诗人 · 14 首 · 34 张卡", "rgba(255,255,255,.7)"), primary: btn("开始布置"), icons: ib("route", { label: "顺序走一遍", disabled: true }) }); } },
+ { id: "S03", name: "宫殿库", reach: "点随身面板的宫殿签", qa: "截全貌：右上「＋ 新宫殿」、分组「诗词」「我的」",
    scene: function () { return dotSVG("L", C.dim) + dotSVG("A", C.dim) + dotSVG("B", C.dim); },
-   panel: function () { return library() + '<div class="dim">' + pocketHome({ mid: bigNum("7", "张卡今日待复习"), primary: btn("开始复习"), icons: ib("pin") + ib("route") }) + "</div>"; } },
- { id: "S04", name: "导入", reach: "宫殿库右上 📥", qa: "adb push 带分组列的 CSV 后截列表；点它后截成功提示",
+   panel: function () { return srcPanelHTML("library", {}) + '<div class="dim">' + pocketHome({ mid: bigNum("7", "张卡今日待复习"), primary: btn("开始复习"), icons: ib("pin") + ib("route") }) + "</div>"; } },
+ { id: "S04", name: "导入", reach: "新宫殿 → 📂 从文件导入", qa: "adb push 带分组列的 CSV 后截列表；点它后截成功提示",
    scene: function () { return ""; },
    panel: function () { return '<div class="lib glass"><div class="row">' + ib("back", { size: "min", label: "返回" }) + t("titleMedium", "导入") + "</div>" +
      '<sui-list-item headline="从文件选择…" supporting="CSV（可加分组列）或 Anki 纯文本导出" leading-icon="📂" headline-color="#fff"></sui-list-item>' +
@@ -4243,7 +4331,7 @@ var STATES = [
    scene: function () { return openScene("先秦 ›", "周", [{ text: "前1046年", dim: 1 }, { text: "前770年", due: 1 }], ""); },
    panel: function () { return pocketSession({ title: "复习 1 / 7", crumb: "中国朝代 › 先秦 › 周", canUp: true, mid: t("titleMedium", "这里 1 张到期") + t("bodyMedium", "评完会自动回到「先秦」", "rgba(255,255,255,.75)") }); } },
  { id: "S15", name: "翻面评分", reach: "捏一张醒着的到期卡", qa: "翻面后截，3 个评分键可见",
-   scene: function () { return threadSVG("A", "B", "future") + dotSVG("L", C.dim) + dotSVG("R", C.dim) + plaqueSVG(280, 72, 1.15, "", "② 秦汉", null, { crumb: "中国朝代", size: 13 }) + tilesSVG(280, 118, [{ text: "前221年", mark: C.jade }, { text: "前202年", dim: 1 }, { text: "25年", due: 1 }]) + '<g transform="translate(280,220)"><rect x="-80" y="-24" width="160" height="70" rx="8" fill="' + C.por + '"/><text y="-8" text-anchor="middle" font-size="8.5" fill="#6a7080">25 年</text><text y="10" text-anchor="middle" font-size="12" font-weight="700" fill="' + C.ink + '">东汉 · 造纸术改进</text><rect x="-72" y="22" width="44" height="14" rx="7" fill="' + C.coral + '"/><rect x="-22" y="22" width="44" height="14" rx="7" fill="' + C.mist + '"/><rect x="28" y="22" width="44" height="14" rx="7" fill="' + C.jade + '"/><text x="-50" y="32" text-anchor="middle" font-size="7.5" font-weight="700" fill="' + C.ink + '">✕忘了</text><text y="32" text-anchor="middle" font-size="7.5" font-weight="700" fill="' + C.ink + '">～模糊</text><text x="50" y="32" text-anchor="middle" font-size="7.5" font-weight="700" fill="' + C.ink + '">✓记得</text></g>'; },
+   scene: function () { return threadSVG("A", "B", "future") + dotSVG("L", C.dim) + dotSVG("R", C.dim) + plaqueSVG(280, 72, 1.15, "", "② 秦汉", null, { crumb: "中国朝代", size: 13 }) + tilesSVG(280, 118, [{ text: "前221年", mark: C.jade }, { text: "前202年", dim: 1 }, { text: "25年", due: 1 }]) + '<g transform="translate(280,220)"><rect x="-80" y="-24" width="160" height="78" rx="8" fill="' + C.por + '"/><text y="-8" text-anchor="middle" font-size="8.5" fill="#6a7080">25 年</text><text y="10" text-anchor="middle" font-size="12" font-weight="700" fill="' + C.ink + '">东汉 · 造纸术改进</text><text y="50" text-anchor="middle" font-size="7" fill="#6a7080">出处一行：《春望》· 杜甫 / 维基百科《长城》· CC BY-SA 4.0</text><rect x="-72" y="22" width="44" height="14" rx="7" fill="' + C.coral + '"/><rect x="-22" y="22" width="44" height="14" rx="7" fill="' + C.mist + '"/><rect x="28" y="22" width="44" height="14" rx="7" fill="' + C.jade + '"/><text x="-50" y="32" text-anchor="middle" font-size="7.5" font-weight="700" fill="' + C.ink + '">✕忘了</text><text y="32" text-anchor="middle" font-size="7.5" font-weight="700" fill="' + C.ink + '">～模糊</text><text x="50" y="32" text-anchor="middle" font-size="7.5" font-weight="700" fill="' + C.ink + '">✓记得</text></g>'; },
    panel: function () { return pocketSession({ title: "复习 3 / 7", crumb: "中国朝代 › 秦汉", mid: t("titleMedium", "这里还剩 1 张"), foot: btn("↶ 改评分", { primary: false, size: "small" }) + t("bodyMedium", "  3 秒内可改", "rgba(255,255,255,.6)") }); } },
  { id: "S16", name: "复习·本轮完成", reach: "到期卡全部评完（含忘了的第二次）", qa: "最后一张评完后截",
    scene: function () { return threadSVG("L", "A", "done") + threadSVG("A", "B", "done") + threadSVG("B", "R", "done") + dotSVG("L", C.jade) + dotSVG("A", C.jade) + dotSVG("B", C.dim) + dotSVG("R", C.mist); },
@@ -4281,13 +4369,30 @@ var STATES = [
    panel: function () { return pocketMsg({ mid: t("titleMedium", "拆掉「中国朝代」的 5 个位置？") + t("bodyMedium", "卡和复习进度都保留，之后可以重新贴", "rgba(255,255,255,.8)"), foot: '<span class="grow"></span>' + btn("取消", { primary: false, size: "small" }) + btn("拆掉", { size: "small" }).replace('container-color="#FFB648"', 'container-color="#FF6B5E"') }); } },
  { id: "S26", name: "布置·删一个位置", reach: "布置时捏已放的位置牌", qa: "布置时捏 ② 后截",
    scene: function () { return placedLoci(3) + '<rect x="118" y="152" width="104" height="22" rx="11" fill="rgba(20,20,20,.72)"/><text x="170" y="167" text-anchor="middle" font-size="10.5" fill="#fff">🗑 删这个位置</text>'; },
-   panel: function () { return '<div class="editbar glass">' + btn("🗑 删这个位置", { size: "small", primary: false }) + "</div>" + '<div style="color:rgba(255,255,255,.75);font-size:13px">里面的 3 张卡回到「没布置」；想换地方就删了重贴</div>'; } }
+   panel: function () { return '<div class="editbar glass">' + btn("🗑 删这个位置", { size: "small", primary: false }) + "</div>" + '<div style="color:rgba(255,255,255,.75);font-size:13px">里面的 3 张卡回到「没布置」；想换地方就删了重贴</div>'; } },
+ { id: "S27", name: "新宫殿·选来源", reach: "宫殿库「＋ 新宫殿」", qa: "截三行：诗词 / 维基百科 / 从文件导入",
+   scene: function () { return dotSVG("L", C.dim) + dotSVG("A", C.dim) + dotSVG("B", C.dim); },
+   panel: function () { return srcPanelHTML("new", {}); } },
+ { id: "S28", name: "诗词包", reach: "新宫殿 → 📜 诗词", qa: "截两行；点唐诗名篇「建成宫殿」后截主页（0 / 5 个位置）",
+   scene: function () { return dotSVG("L", C.dim) + dotSVG("A", C.dim); },
+   panel: function () { return srcPanelHTML("poetry", {}); } },
+ { id: "S29", name: "维基百科·搜索", reach: "新宫殿 → 🌐 维基百科（网络可达）", qa: "点 chip「长城」后截结果列表",
+   scene: function () { return dotSVG("L", C.dim) + dotSVG("A", C.dim); },
+   panel: function () { return srcPanelHTML("wiki", { q: "长城" }); } },
+ { id: "S30", name: "维基百科·预览", reach: "点一个搜索结果（取条目并生成）", qa: "截「长城」的预览；再截一个短条目的置灰态",
+   scene: function () { return dotSVG("L", C.dim) + dotSVG("A", C.dim); },
+   panel: function () { return srcPanelHTML("preview", { title: "长城" }); } },
+ { id: "S31", name: "维基百科·连不上", reach: "搜索或取条目失败（超时 6 s、DNS 失败、HTTP ≥ 400）", qa: "debug 广播 wikiFail 后点维基百科截",
+   scene: function () { return dotSVG("L", C.dim) + dotSVG("A", C.dim); },
+   panel: function () { return srcPanelHTML("fail", {}); } }
 ];
+var CHANGED = { S02: "改", S03: "改", S04: "改", S15: "改", S27: "新", S28: "新", S29: "新", S30: "新", S31: "新" };
 function renderStates() {
   var html = "", rows = "";
   STATES.forEach(function (s) {
-    rows += '<tr><td class="id"><a href="#' + s.id + '">' + s.id + "</a></td><td>" + esc(s.name) + "</td><td>" + esc(s.reach) + "</td><td>" + esc(s.qa) + "</td></tr>";
-    html += '<article class="state" id="' + s.id + '"><div class="state-head"><span class="sid">' + s.id + '</span><h3>' + esc(s.name) + '</h3><span class="reach">' + esc(s.reach) + "</span></div>" +
+    var c = CHANGED[s.id], badge = c ? '<span class="badge-chg' + (c === "改" ? " badge-mod" : "") + '">' + c + "</span>" : "";
+    rows += '<tr' + (c ? ' style="background:rgba(95,211,164,.14)"' : "") + '><td class="id"><a href="#' + s.id + '">' + s.id + "</a>" + badge + "</td><td>" + esc(s.name) + "</td><td>" + esc(s.reach) + "</td><td>" + esc(s.qa) + "</td></tr>";
+    html += '<article class="state' + (c ? " chg" : "") + '" id="' + s.id + '"><div class="state-head"><span class="sid">' + s.id + '</span><h3>' + esc(s.name) + badge + '</h3><span class="reach">' + esc(s.reach) + "</span></div>" +
       '<div class="state-body"><div class="scene">' + roomSVG(s.scene()) + '</div><div class="panelcol room-bg">' + s.panel() + "</div></div>" +
       '<div class="state-foot"><div><b>QA 截图：</b>' + esc(s.qa) + "</div></div></article>";
   });
@@ -4297,7 +4402,9 @@ function renderStates() {
 
 /* ---------- structure tree & card spec ---------- */
 var PRESETS = [
-  { t: "中国朝代", s: "5 个位置 · 17 张卡 · 3 层", kids: PALACE.map(function (l) { return { t: l.t, kids: l.kids }; }) },
+  { t: "唐诗名篇", s: "诗词 · 5 个位置 · 14 首 · 34 张卡", kids: PALACE.map(function (l) { return { t: l.t, kids: l.kids }; }) },
+  { t: "宋词名篇", s: "诗词 · 建成后出现 · 4 个位置 · 25 张卡", kids: SONG },
+  { t: "中国朝代", s: "5 个位置 · 17 张卡 · 3 层", kids: DYNASTIES.map(function (l) { return { t: l.t, kids: l.kids }; }) },
   { t: "前 20 号元素", s: "4 个位置 · 20 张卡", kids: [
     { t: "第 1 周期", kids: [{ f: "1 号", b: "H 氢" }, { f: "2 号", b: "He 氦" }] },
     { t: "第 2 周期", kids: [{ f: "3 号", b: "Li 锂" }, { f: "4 号", b: "Be 铍" }, { f: "…", b: "共 8 张" }] },
@@ -4331,6 +4438,114 @@ function drawTree() {
   document.getElementById("cardOpen").innerHTML = clusterHTML({ crumb: "中国朝代", title: "① 先秦", tiles: tileHTML(null, 0, "due", "约前 2070 年") + tileHTML(null, 1, "dim", "") + '<div class="tile grp" data-tile="2"><span class="n">③</span><span class="badge">1</span>周 ▸</div>' });
   document.getElementById("cardInside").innerHTML = clusterHTML({ crumb: "中国朝代 › 先秦 ›", title: "周", tiles: tileHTML(null, 0, "dim", "") + tileHTML(null, 1, "due", "前 770 年") });
   document.getElementById("lodNear").insertAdjacentHTML("afterbegin", '<div style="transform:scale(.62);transform-origin:center;margin:-34px 0 -40px">' + clusterHTML({ title: "② 秦汉", tiles: tileHTML(null, 0, "due", "前 221 年") + tileHTML(null, 1, "dim", "") + tileHTML(null, 2, "due", "25 年") }) + "</div>");
+}
+
+
+/* ---------- v0.2 content sources: panel pages (S03, S27–S31) + live demo ---------- */
+var WIKI = {
+  results: { "长城": [["长城", "中国古代的军事防御工程"], ["长城站", "中国在南极建立的第一个科学考察站"], ["长城汽车", "中国汽车制造企业"]],
+             "太阳系": [["太阳系", "以太阳为中心的天体系统"], ["太阳系小天体", "太阳系中除行星和卫星外的天体"]],
+             "光合作用": [["光合作用", "植物利用光能合成有机物的过程"]],
+             "Great Wall": [["Great Wall of China", "Series of fortifications in China"]] },
+  preview: { "长城": { intro: "中国古代的军事防御工程，修筑历史可上溯到西周。", loci: [["概述", 5, "＿＿是中国古代修筑的大型军事防御工程"], ["历史", 6, "＿＿时期各国开始在边境修筑长城"], ["建筑结构", 6, "＿＿是长城上用来传递军情的建筑"], ["明长城", 4, "明长城西端的起点是＿＿"], ["保护", 4, "长城于 1987 年列入＿＿"], ["旅游", 3, "八达岭长城位于＿＿延庆区"]] },
+             "长城站": { intro: "中国在南极建立的第一个科学考察站。", loci: [["概述", 3, "长城站位于南极洲＿＿岛"]] } }
+};
+var SRC = { page: "library", net: 0, q: "", title: "", off: {}, built: { "唐诗名篇": 1 }, lang: 0, loading: false };
+function back(label) { return ib("back", { size: "min", label: label || "返回", data: "src-back" }); }
+function wikiResultsHTML(q, en) {
+  var res = WIKI.results[q] || [];
+  if (SRC.loading) return '<div class="row" style="justify-content:center;padding:16px"><sui-circular-progress indeterminate size="regular"></sui-circular-progress>' + t("bodyMedium", " 正在查…", "rgba(255,255,255,.8)") + "</div>";
+  return res.map(function (r) { return '<sui-list-item headline="' + r[0] + '" supporting="' + r[1] + '" leading-icon="🌐" headline-color="#fff" data-act="src-open" data-title="' + r[0] + '"></sui-list-item>'; }).join("") ||
+    (q ? '<div class="hint">没有找到「' + esc(q) + '」，换个词试试（演示只认长城、太阳系、光合作用）</div>' : '<div class="hint">输入一个词，比如一个地方、一个人、一个概念</div>');
+}
+function srcPanelHTML(page, o) {
+  o = o || {};
+  var built = o.built || SRC.built;
+  if (page === "library") {
+    var poems = [["唐诗名篇", "5 个位置 · 14 首 · 34 张卡 · 今日 7", 1]];
+    if (built["宋词名篇"]) poems.push(["宋词名篇", "4 个位置 · 6 首 · 25 张卡 · 没布置", 0]);
+    var mine = [["中国朝代", "5 个位置 · 17 张卡 · 没布置"], ["前 20 号元素", "4 个位置 · 20 张卡 · 没布置"], ["旅行英语", "3 个位置 · 15 张卡 · 没布置"]];
+    if (built["长城"]) mine.unshift(["长城", "来自维基百科 · 6 个位置 · 28 张卡 · 没布置"]);
+    return '<div class="lib glass"><div class="row sp">' + t("titleMedium", "宫殿") + '<sui-button size="small" text="＋ 新宫殿" data-act="src-new" container-color="#FFB648" content-color="#1F2430"></sui-button></div>' +
+      '<div class="grp">诗词</div>' + poems.map(function (r) { return '<sui-list-item headline="' + r[0] + '" supporting="' + r[1] + '" leading-icon="📜" ' + (r[2] ? 'trailing-icon="✓" ' : "") + 'headline-color="#fff"></sui-list-item>'; }).join("") +
+      '<div class="grp">我的</div>' + mine.map(function (r) { return '<sui-list-item headline="' + r[0] + '" supporting="' + r[1] + '" leading-icon="●" headline-color="#fff"></sui-list-item>'; }).join("") + "</div>";
+  }
+  if (page === "new") {
+    return '<div class="lib glass"><div class="row">' + back("返回宫殿库") + t("titleMedium", "新宫殿") + "</div>" +
+      '<sui-list-item headline="诗词" supporting="离线 · 开箱即用 · 唐诗名篇、宋词名篇" leading-icon="📜" trailing-icon="›" headline-color="#fff" data-act="src-poetry"></sui-list-item>' +
+      '<sui-list-item headline="维基百科" supporting="要联网 · 输入一个词，按条目建宫殿 · 中国大陆打不开" leading-icon="🌐" trailing-icon="›" headline-color="#fff" data-act="src-wiki"></sui-list-item>' +
+      '<sui-list-item headline="从文件导入" supporting="CSV、Anki 纯文本、缩进 TXT" leading-icon="📂" trailing-icon="›" headline-color="#fff" data-act="src-file"></sui-list-item></div>';
+  }
+  if (page === "poetry") {
+    function row(name, who, n, key) {
+      return '<div class="pv"><div class="r"><span class="nm">' + name + '<span class="ex">' + who + " · " + n + "</span></span>" +
+        (built[key] ? '<sui-button size="small" text="已在宫殿库" data-act="src-lib"></sui-button>' : '<sui-button size="small" text="建成宫殿" container-color="#FFB648" content-color="#1F2430" data-act="src-build-' + key + '"></sui-button>') + "</div></div>";
+    }
+    return '<div class="lib glass"><div class="row">' + back() + t("titleMedium", "诗词 · 离线") + "</div>" +
+      row("唐诗名篇", "李白 · 杜甫 · 王维 · 白居易 · 诸家", "14 首 · 34 张卡", "唐诗名篇") +
+      row("宋词名篇", "苏轼 · 李清照 · 辛弃疾 · 晏殊", "6 首 · 25 张卡", "宋词名篇") +
+      '<div class="hint">位置 = 诗人，子位置 = 一首，卡 = 上句 → 下句。顺序走一遍就是把整首诗背一遍。</div></div>';
+  }
+  if (page === "wiki") {
+    var q = o.q != null ? o.q : SRC.q, en = (o.lang != null ? o.lang : SRC.lang) === 1;
+    var res = WIKI.results[q] || [];
+    return '<div class="lib glass" style="width:480px"><div class="row">' + back() + t("titleMedium", "维基百科") + '<span class="grow"></span><sui-segment-control id="langSeg" options="中文,English" selected-index="' + (en ? 1 : 0) + '" size="small"></sui-segment-control></div>' +
+      '<sui-search-field id="wikiQ" width="440" placeholder="' + (en ? "Search Wikipedia" : "搜索维基百科条目") + '" value="' + esc(q) + '"></sui-search-field>' +
+      '<div class="chiprow"><span class="hint">试试：</span>' + (en ? ["Great Wall"] : ["长城", "太阳系", "光合作用"]).map(function (c) { return '<sui-chip size="small" label="' + c + '" data-act="src-q" data-q="' + c + '"></sui-chip>'; }).join("") + "</div>" +
+      '<div id="wikiRes">' + wikiResultsHTML(q, en) + '</div>' + "</div>";
+  }
+  if (page === "preview") {
+    var ti = o.title || SRC.title, pv = WIKI.preview[ti] || WIKI.preview["长城"], off = o.off || SRC.off;
+    var nl = 0, nc = 0;
+    pv.loci.forEach(function (l, i) { if (!off[i]) { nl++; nc += l[1]; } });
+    var tooShort = nc < 5;
+    return '<div class="lib glass" style="width:480px"><div class="row">' + back() + t("titleMedium", ti) + "</div>" +
+      '<div class="hint">' + esc(pv.intro) + "</div>" +
+      '<div class="pv">' + pv.loci.map(function (l, i) {
+        return '<div class="r"><span class="nm">' + CIRC[i] + " " + l[0] + '<span class="ex">' + l[1] + " 张 · 例：" + esc(l[2]) + '</span></span><sui-checkbox data-loc="' + i + '"' + (off[i] ? "" : " checked") + "></sui-checkbox></div>";
+      }).join("") + "</div>" +
+      (tooShort ? '<div class="hint" style="color:#FF6B5E">这个条目太短，换一个（至少 5 张卡）</div>' : "") +
+      '<div class="row" style="justify-content:center"><sui-button size="regular" text="建成宫殿（' + nl + " 个位置 · " + nc + ' 张卡）" container-color="#FFB648" content-color="#1F2430" data-act="src-buildwiki"' + (tooShort ? " disabled" : "") + "></sui-button></div>" +
+      '<div class="attrib">内容来自维基百科 · CC BY-SA 4.0 · 每张卡背面都有出处</div></div>';
+  }
+  if (page === "fail") {
+    return '<div class="lib glass"><div class="row">' + back() + t("titleMedium", "维基百科") + "</div>" +
+      '<div style="padding:18px 6px">' + t("titleMedium", "这个网络打不开维基百科", "#FF6B5E") + '<div style="height:6px"></div>' + t("bodyMedium", "在中国大陆，可以先用诗词包，或者从文件导入。", "rgba(255,255,255,.85)") + "</div>" +
+      '<div class="row">' + btn("去诗词包", { data: "src-poetry" }) + btn("再试一次", { primary: false, size: "small", data: "src-wiki" }) + "</div></div>";
+  }
+  return "";
+}
+function drawSources() {
+  var host = document.getElementById("srcPanel"), wrap = document.getElementById("sources");
+  function go(page) { SRC.page = page; paint(); }
+  function paint() { host.innerHTML = srcPanelHTML(SRC.page, {}); }
+  function openWiki() {
+    if (SRC.net === 1) { SRC.loading = true; go("wiki"); setTimeout(function () { SRC.loading = false; go("fail"); }, 1200); return; }
+    go("wiki");
+  }
+  wrap.addEventListener("click-action", function (e) {
+    var el = e.target, a = el.getAttribute("data-act"); if (!a || a.indexOf("src-") !== 0) return;
+    if (a === "src-new") go("new");
+    else if (a === "src-back") go({ "new": "library", poetry: "new", wiki: "new", preview: "wiki", fail: "new" }[SRC.page] || "library");
+    else if (a === "src-lib") go("library");
+    else if (a === "src-poetry") go("poetry");
+    else if (a === "src-wiki") openWiki();
+    else if (a === "src-file") { go("library"); }
+    else if (a.indexOf("src-build-") === 0) { SRC.built[a.slice(10)] = 1; go("library"); }
+    else if (a === "src-q") { SRC.q = el.getAttribute("data-q"); if (SRC.net === 1) { go("fail"); return; } SRC.loading = true; paint(); setTimeout(function () { SRC.loading = false; paint(); }, 500); }
+    else if (a === "src-open") { SRC.title = el.getAttribute("data-title"); SRC.off = {}; go(WIKI.preview[SRC.title] ? "preview" : "preview"); }
+    else if (a === "src-buildwiki") { SRC.built["长城"] = 1; go("library"); }
+  });
+  wrap.addEventListener("checked-change", function (e) { var i = e.target.getAttribute("data-loc"); if (i == null) return; SRC.off[i] = !e.detail.checked; paint(); });
+  wrap.addEventListener("value-change", function (e) { if (e.target.id !== "wikiQ") return; clearTimeout(drawSources.tm); var v = e.detail.value.trim(); drawSources.tm = setTimeout(function () { SRC.q = v; if (SRC.net === 1) { go("fail"); return; } var r = host.querySelector("#wikiRes"); if (r) r.innerHTML = wikiResultsHTML(v, SRC.lang === 1); }, 300); });
+  wrap.addEventListener("select", function (e) {
+    if (e.target.id === "netSeg") { SRC.net = e.detail.index; SRC.page = "library"; paint(); }
+    if (e.target.id === "langSeg") { SRC.lang = e.detail.index; SRC.q = SRC.lang ? "Great Wall" : "长城"; paint(); }
+  });
+  paint();
+  var pt = document.getElementById("packTree");
+  pt.innerHTML = treeHTML([{ t: "唐诗名篇", s: "5 个位置 · 14 首 · 34 张卡", kids: PALACE }, { t: "宋词名篇", s: "4 个位置 · 6 首 · 25 张卡", kids: SONG }], 0);
+  pt.addEventListener("click", function (e) { var b = e.target.closest(".node.has"); if (!b) return; var li = b.parentNode, on = li.classList.toggle("open"); li.setAttribute("aria-expanded", on); });
 }
 
 /* ---------- space diagrams ---------- */
@@ -4402,7 +4617,7 @@ function drawSwatches() {
   var sw = [["interaction / 灯笼琥珀", "#FFB648", "主按钮、下一个、线"], ["passable / 玉绿", "#5FD3A4", "记得、对、走过的线"], ["error / 珊瑚", "#FF6B5E", "忘了、错、贴不上"], ["alert", "#FF9A3D", "提醒（少用）"], ["雾蓝", "#8FB8FF", "模糊"], ["瓷白（位置牌 / 卡）", "#F4F0E8", "实物不是玻璃"], ["墨（卡上的字）", "#1F2430", "卡面文字"], ["黄铜（图钉）", "#C9A35A", "图钉"]];
   document.getElementById("swatches").innerHTML = sw.map(function (s) { return '<div class="sw"><div style="background:' + s[1] + '"></div><div><b>' + s[0] + "</b><br>" + s[1] + " · " + s[2] + "</div></div>"; }).join("");
 }
-var REVIEW = ["2026-10-20 评审第 1 轮（reviewer 子 agent，对照 Anki / SpatialFlashcards / Quest Memory Palace）：revise，4 P1 + 6 P2 + 2 P3，全部采纳或部分采纳：", "R1-1 P1 高度可达：加落卡高度闸 0.7–1.9 m，删 SOFA/CHAIR，醒卡改用水平距离 ≤1.0 m", "R1-2 P1 醒卡冲突：间距改 ≥0.5 m；同时只醒一张（注视的或最近的）；1 m 内的其他卡捏了就换它醒，不出「太远」", "R1-3 P1 超 30 张：导入时按 30 张自动拆牌组；正面 ≤40 字、背面 ≤60 字截断", "R1-4 P1 S01 死路：≥1 个表面就放行并按数据分流；15 s 加提示 +「先进去」", "R1-5 P2 回忆与复习共用一个 SM-2（错 = 忘了；对只在当天到期时算记得）；捏开正反面一起显示；砍掉计时与最佳成绩；复习不强制顺序", "R1-6 P2 SM-2 细则：dueDay 以凌晨 4 点分界；忘了只重来一次；3 s 改评分", "R1-7 P2 布置预览同时显示正反面（放一张 = 读一遍）", "R1-8 P2 找不到的卡不计入今日与会话，顺序走时跳过并注明", "R1-9 P2 导入：系统选择器为主入口、import/ 目录兜底；UTF-8→GBK 回退；cloze 还原；不支持 .apkg；「局域网网页上传」列为门 B 未决项", "R1-10 P2 5 m 改为任意两张卡最大跨度；走动 >2 m 静默再加载，进 S19 前静默重试", "R1-11 P3 桌上的卡 yaw billboard；DOOR / WINDOW 不可贴", "R1-12 P3 傻瓜化：去掉「绕一圈」确认页（改成 S09 一行提示）；界面只用「牌组 / 卡 / 走一遍」三个词；删一张代替「移动」；与主按钮重复的图标键隐藏；语言分段保留（中英双语是产线硬要求）", "2026-10-20 评审第 2 轮：pass（4 条 P1 已解决，无新 P1）；2 P2 + 4 P3 已顺手改：", "R2-1 P2 醒卡候选集 = 今日到期且未评（顺序走 = 下一张）；翻面后锁定到评完或 >1.2 m", "R2-2 P2 墙上的卡加朝向半空间条件，隔墙不醒", "R2-3 P2 300 张上限 = 已上墙的卡；导入总数不限", "R2-4 P3 布置「完成」按已上墙数分流（0 张回 S02）；S09 的 📍 带未上墙数角标", "R2-5 P3 改评分窗口挂在 S10/S14 面板上，最后一张评完先停 3 s", "R2-6 P3 提示文案统一词表：「绕着这些卡走走」", "2026-10-21 门 B 改：用户要嵌套宫殿结构，按 changes[] 重出 v2；体量仍是单线 1–2 天（只多一个树数据模型、一个格子布局和面包屑），未另开评审轮", "2026-10-21 合并：评论自动回复在 04:14 先发了一版快速嵌套（宫殿 = 真实房间 › 厅 › 位 › 子位，卡翻面后手动展开）。v2 没整版保留它：每层先翻再展开多一步，「走进房间自动认出宫殿」SDK 未确认；保留了它的可展开树（样稿 §2）和 TXT 行首缩进导入", "2026-10-21 门 B「改」（用户在样稿评论：memory 需要能展开、嵌套结构才是真正的宫殿结构）：", "信息架构改为 宫殿 → 位置（锚点）→ 子位置 → 卡，最深 3 层；每层 ≤8 个子级；每宫殿 ≤20 个位置、≤120 张卡", "走进位置 1 m 自动就地展开成格子；捏子位置进入下一层、↩ 返回；走开 1.2 m 自动收起", "≤1 m 才可翻、路线顺序回忆两条验收在嵌套里的成立方式写进 nesting 与 acceptance", "只有第 1 层位置占锚点，子级按局部坐标排布：布置步数从「每张卡一次」降到「每个位置一次」", "导入支持分组列（a/b）与 Anki :: 层级；平铺 >20 张自动每 6 张并成一个位置", "预置牌组改成有层级：中国朝代 5 位置 3 层、元素按周期 4 位置、旅行英语按场景 3 位置", "状态 S01–S23 → S01–S26：新增 S13 位置展开、S14 进入子位置、S17 顺序走·到位置、S18 顺序走·展开回忆；界面词改为 宫殿 / 位置 / 卡 / 走一遍", "位置间距 0.5 → 0.8 m、可贴高度 0.7–1.9 → 0.8–1.8 m（给格子和标题留地方）"];
+var REVIEW = ["2026-10-20 评审第 1 轮（reviewer 子 agent，对照 Anki / SpatialFlashcards / Quest Memory Palace）：revise，4 P1 + 6 P2 + 2 P3，全部采纳或部分采纳：", "R1-1 P1 高度可达：加落卡高度闸 0.7–1.9 m，删 SOFA/CHAIR，醒卡改用水平距离 ≤1.0 m", "R1-2 P1 醒卡冲突：间距改 ≥0.5 m；同时只醒一张（注视的或最近的）；1 m 内的其他卡捏了就换它醒，不出「太远」", "R1-3 P1 超 30 张：导入时按 30 张自动拆牌组；正面 ≤40 字、背面 ≤60 字截断", "R1-4 P1 S01 死路：≥1 个表面就放行并按数据分流；15 s 加提示 +「先进去」", "R1-5 P2 回忆与复习共用一个 SM-2（错 = 忘了；对只在当天到期时算记得）；捏开正反面一起显示；砍掉计时与最佳成绩；复习不强制顺序", "R1-6 P2 SM-2 细则：dueDay 以凌晨 4 点分界；忘了只重来一次；3 s 改评分", "R1-7 P2 布置预览同时显示正反面（放一张 = 读一遍）", "R1-8 P2 找不到的卡不计入今日与会话，顺序走时跳过并注明", "R1-9 P2 导入：系统选择器为主入口、import/ 目录兜底；UTF-8→GBK 回退；cloze 还原；不支持 .apkg；「局域网网页上传」列为门 B 未决项", "R1-10 P2 5 m 改为任意两张卡最大跨度；走动 >2 m 静默再加载，进 S19 前静默重试", "R1-11 P3 桌上的卡 yaw billboard；DOOR / WINDOW 不可贴", "R1-12 P3 傻瓜化：去掉「绕一圈」确认页（改成 S09 一行提示）；界面只用「牌组 / 卡 / 走一遍」三个词；删一张代替「移动」；与主按钮重复的图标键隐藏；语言分段保留（中英双语是产线硬要求）", "2026-10-20 评审第 2 轮：pass（4 条 P1 已解决，无新 P1）；2 P2 + 4 P3 已顺手改：", "R2-1 P2 醒卡候选集 = 今日到期且未评（顺序走 = 下一张）；翻面后锁定到评完或 >1.2 m", "R2-2 P2 墙上的卡加朝向半空间条件，隔墙不醒", "R2-3 P2 300 张上限 = 已上墙的卡；导入总数不限", "R2-4 P3 布置「完成」按已上墙数分流（0 张回 S02）；S09 的 📍 带未上墙数角标", "R2-5 P3 改评分窗口挂在 S10/S14 面板上，最后一张评完先停 3 s", "R2-6 P3 提示文案统一词表：「绕着这些卡走走」", "2026-10-21 门 B 改：用户要嵌套宫殿结构，按 changes[] 重出 v2；体量仍是单线 1–2 天（只多一个树数据模型、一个格子布局和面包屑），未另开评审轮", "2026-10-21 合并：评论自动回复在 04:14 先发了一版快速嵌套（宫殿 = 真实房间 › 厅 › 位 › 子位，卡翻面后手动展开）。v2 没整版保留它：每层先翻再展开多一步，「走进房间自动认出宫殿」SDK 未确认；保留了它的可展开树（样稿 §2）和 TXT 行首缩进导入", "2026-10-22 v0.2 回设计站（showcase → design，真机反馈加内容源）：只改变化处，未另开评审轮；体量估 1 天（诗词数据 + 3 个面板页 + 维基 builder）", "2026-10-21 门 B「改」（用户在样稿评论：memory 需要能展开、嵌套结构才是真正的宫殿结构）：", "信息架构改为 宫殿 → 位置（锚点）→ 子位置 → 卡，最深 3 层；每层 ≤8 个子级；每宫殿 ≤20 个位置、≤120 张卡", "走进位置 1 m 自动就地展开成格子；捏子位置进入下一层、↩ 返回；走开 1.2 m 自动收起", "≤1 m 才可翻、路线顺序回忆两条验收在嵌套里的成立方式写进 nesting 与 acceptance", "只有第 1 层位置占锚点，子级按局部坐标排布：布置步数从「每张卡一次」降到「每个位置一次」", "导入支持分组列（a/b）与 Anki :: 层级；平铺 >20 张自动每 6 张并成一个位置", "预置牌组改成有层级：中国朝代 5 位置 3 层、元素按周期 4 位置、旅行英语按场景 3 位置", "状态 S01–S23 → S01–S26：新增 S13 位置展开、S14 进入子位置、S17 顺序走·到位置、S18 顺序走·展开回忆；界面词改为 宫殿 / 位置 / 卡 / 走一遍", "位置间距 0.5 → 0.8 m、可贴高度 0.7–1.9 → 0.8–1.8 m（给格子和标题留地方）", "2026-10-22 v0.2（真机反馈「内容不行，要链接维基百科、诗词也行」）：", "新增内容源：离线诗词包（唐诗名篇 34 张、宋词名篇 25 张，公有领域原文，宫殿 = 册 / 位置 = 诗人 / 子位置 = 一首 / 卡 = 上句→下句），默认第一座宫殿改为唐诗名篇", "新增维基百科一键建宫殿（只做海外）：搜索 → 预览（按章节生成位置、挖空卡，可勾选）→ 建成；卡背署名 CC BY-SA 4.0；建好后离线可用", "中国大陆：查过百度百科（无官方开放 API）、天行数据（无百科条目接口）、千帆 AppBuilder（不是百科 API），都不合适；大陆不接在线百科，S31 引导到诗词包", "新增状态 S27 新宫殿·选来源、S28 诗词包、S29 维基百科·搜索、S30 维基百科·预览、S31 维基百科·连不上；S02/S03/S04/S15 小改；新增 INTERNET 权限", "门 B 只看变化处（gate.changedOnly = true）"];
 function drawReview() { document.getElementById("reviewList").innerHTML = REVIEW.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join(""); }
 
 /* ---------- try-walk simulator ---------- */
@@ -4440,7 +4655,7 @@ function computeOpen() {
   W.open = best; W.path = []; W.flipped = null; W.rIdx = [0]; W.revealed = false;
 }
 function curNode() { return W.open < 0 ? null : nodeAt([W.open].concat(W.path)); }
-function crumb() { var parts = ["中国朝代"], n = PALACE[W.open]; parts.push(n.t); W.path.forEach(function (j) { n = n.kids[j]; parts.push(n.t); }); return parts.join(" › "); }
+function crumb() { var parts = [PALACE_NAME], n = PALACE[W.open]; parts.push(n.t); W.path.forEach(function (j) { n = n.kids[j]; parts.push(n.t); }); return parts.join(" › "); }
 function drawMap() {
   map.innerHTML = "";
   var P = roomPlan(map, MS, 0, 0), nl = nextLocus();
@@ -4491,17 +4706,17 @@ function viewHTML() {
   var below = "";
   if (W.flipped) {
     var f = W.flipped;
-    below = '<div class="plaque focus"><span class="pin"></span><div class="small">' + esc(f.f) + '</div><div class="ans">' + esc(f.b) + '</div><div class="keys">' +
+    below = '<div class="plaque focus"><span class="pin"></span><div class="small">' + esc(f.f) + '</div><div class="ans">' + esc(f.b) + '</div>' + (f.src ? '<div class="small" style="margin:-6px 0 8px;font-size:11.5px">' + esc(f.src) + '</div>' : '') + '<div class="keys">' +
       (W.mode === "review" ? '<sui-button size="small" text="✕ 忘了" container-color="#FF6B5E" content-color="#1F2430" data-rate="1"></sui-button><sui-button size="small" text="～ 模糊" container-color="#8FB8FF" content-color="#1F2430" data-rate="3"></sui-button><sui-button size="small" text="✓ 记得" container-color="#5FD3A4" content-color="#1F2430" data-rate="5"></sui-button>'
         : '<sui-button size="small" text="✕ 错" container-color="#FF6B5E" content-color="#1F2430" data-judge="0"></sui-button><sui-button size="small" text="✓ 对" container-color="#5FD3A4" content-color="#1F2430" data-judge="1"></sui-button>') + "</div></div>";
   }
   var title = W.path.length ? esc(node.t) : CIRC[W.open] + " " + esc(node.t);
-  var cr = W.path.length ? "中国朝代 › " + PALACE[W.open].t + " ›" : "中国朝代";
+  var cr = W.path.length ? PALACE_NAME + " › " + PALACE[W.open].t + " ›" : PALACE_NAME;
   return clusterHTML({ crumb: cr, title: title, tiles: tiles, below: below }) + toastH;
 }
 function pocketHTML() {
   var nl = nextLocus();
-  if (W.mode === "home") return pocketHome({ mid: bigNum(String(DUE.length), "张卡今日待复习") + t("bodyMedium", "在 4 个位置", "rgba(255,255,255,.7)"), primary: btn("开始复习", { data: "review" }), icons: ib("pin", { label: "布置" }) + ib("route", { label: "顺序走一遍", data: "recall" }) });
+  if (W.mode === "home") return pocketHome({ mid: bigNum(String(DUE.length), "张卡今日待复习") + t("bodyMedium", "在 4 位诗人那里", "rgba(255,255,255,.7)"), primary: btn("开始复习", { data: "review" }), icons: ib("pin", { label: "布置" }) + ib("route", { label: "顺序走一遍", data: "recall" }) });
   if (W.mode === "done") return pocketHome({ mid: bigNum("✓", "今天完成了", C.jade) + t("bodyMedium", "明天 4 张", "rgba(255,255,255,.75)"), primary: btn("顺序走一遍", { data: "recall" }), icons: ib("pin", { label: "布置" }) });
   if (W.mode === "summary") { var cnt = { 1: 0, 3: 0, 5: 0 }; for (var k in W.rated) cnt[W.rated[k]]++; return pocketMsg({ top: t("titleMedium", "✓ 这一轮完成了", C.jade), mid: t("bodyLarge", "记得 " + cnt[5] + " · 模糊 " + cnt[3] + " · 忘了 " + cnt[1], "#fff") + t("bodyMedium", "明天 4 张", "rgba(255,255,255,.75)"), foot: '<span class="grow"></span>' + btn("好", { size: "small", data: "toDone" }) }); }
   if (W.mode === "rsummary") { var ok = 0; for (var j in W.res) if (W.res[j]) ok++; return pocketMsg({ top: t("titleMedium", "走完了"), mid: bigNum(ok + " / " + ALL_LEAVES.length, "张对") + t("bodyMedium", "位置顺序 " + PALACE.length + " / " + PALACE.length + " · 错的 " + (ALL_LEAVES.length - ok) + " 张已放进今日复习", "rgba(255,255,255,.8)"), foot: '<span class="grow"></span>' + btn("好", { size: "small", data: "toHome" }) }); }
@@ -4602,6 +4817,6 @@ document.getElementById("try").addEventListener("click-action", function (e) {
   render();
 });
 
-renderStates(); drawTree(); drawDiagrams(); drawSwatches(); drawReview(); render();
+renderStates(); drawTree(); drawSources(); drawDiagrams(); drawSwatches(); drawReview(); render();
 })();
 </script>

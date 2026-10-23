@@ -38,6 +38,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.mutableStateOf
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import io.embodit.memorypalace.domain.Presets
+import io.embodit.memorypalace.domain.WikiBuilder
+import io.embodit.memorypalace.domain.WikiDraft
+import io.embodit.memorypalace.domain.WikiHit
+import io.embodit.memorypalace.platform.WikiClient
+import io.embodit.memorypalace.platform.WikiUnreachable
 
 /** One-shot effects the screen carries out (they need the platform). */
 sealed interface PalaceEffect {
@@ -56,6 +65,7 @@ class PalaceViewModel(
     private val anchors: AnchorGateway,
     private val importDir: File?,
     private val versionName: String,
+    private val wiki: WikiClient? = null,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
 
@@ -98,6 +108,26 @@ class PalaceViewModel(
     private var path: List<String> = emptyList()
     private var flipped: String? = null
     private var nudge: Nudge? = null
+
+    // ---- v0.2 Wikipedia (S29 - S31)
+    private var wikiLang = "zh"
+    private var wikiQuery = ""
+
+    /**
+     * What the search field shows (QA q2-1). Compose state read directly by the field, not through [state]:
+     * the pooled panel can recompose with a frame-old [state] (the emulator idles at ~1 fps) and can rebuild
+     * its content, and either way a value taken from [state] undid keys. Typing writes it in the same frame;
+     * the ViewModel writes it only when it sets the query itself (a chip, a reset).
+     */
+    val wikiInput = mutableStateOf("")
+    private var wikiHits: List<WikiHit> = emptyList()
+    private var wikiSearching = false
+    private var wikiLoading: String? = null
+    private var wikiDraft: WikiDraft? = null
+    private var wikiDescription = ""
+    private var wikiKeep: Set<Int> = emptySet()
+    private var wikiFailed = false
+    private var wikiJob: Job? = null
 
     private var nudgeJob: Job? = null
     private var undoJob: Job? = null
@@ -192,6 +222,9 @@ class PalaceViewModel(
                 popup = null
                 importError = null
                 importResult = null
+                wikiJob?.cancel()
+                wikiLoading = null
+                wikiSearching = false
             }
             is PalaceEvent.PalacePicked -> pickPalace(e.id)
             PalaceEvent.ImportClicked -> {
@@ -200,10 +233,38 @@ class PalaceViewModel(
                 importError = null
                 importResult = null
             }
-            PalaceEvent.ImportBack -> {
-                popup = Popup.LIBRARY
+            PalaceEvent.ImportBack, PalaceEvent.PopupBack -> popupBack()
+            PalaceEvent.NewPalace -> popup = Popup.NEW_PALACE
+            PalaceEvent.SourcePoetry, PalaceEvent.GoPoetry -> {
+                wikiFailed = false
+                popup = Popup.POETRY
+            }
+            PalaceEvent.SourceWiki -> openWiki()
+            PalaceEvent.SourceFile -> {
+                refreshImportFiles()
+                popup = Popup.IMPORT
                 importError = null
                 importResult = null
+            }
+            is PalaceEvent.BuildPack -> buildPack(e.id)
+            is PalaceEvent.WikiQuery -> wikiType(e.text)
+            is PalaceEvent.WikiSearch -> {
+                if (wikiInput.value != e.text) wikiInput.value = e.text
+                wikiSearch(e.text, now = true)
+            }
+            is PalaceEvent.WikiLang ->
+                if (wikiLang != e.lang) {
+                    wikiLang = e.lang
+                    wikiHits = emptyList()
+                    if (wikiQuery.isNotBlank()) wikiSearch(wikiQuery, now = true)
+                }
+            is PalaceEvent.WikiPick -> wikiPick(e.title, e.description)
+            is PalaceEvent.WikiToggle -> wikiKeep = if (e.index in wikiKeep) wikiKeep - e.index else wikiKeep + e.index
+            PalaceEvent.WikiBuild -> wikiBuild()
+            PalaceEvent.WikiRetry -> {
+                wikiFailed = false
+                val pending = wikiLoading
+                if (pending != null) wikiPick(pending, wikiDescription) else if (wikiQuery.isNotBlank()) wikiSearch(wikiQuery, now = true)
             }
             is PalaceEvent.ImportFile -> importFile(e.name)
             PalaceEvent.PickFromFiles -> effectChannel.trySend(PalaceEffect.OpenPicker)
@@ -230,6 +291,8 @@ class PalaceViewModel(
             is PalaceEvent.PlaceTapped -> " block=${e.block} at=${PalaceLog.pos(e.spot?.position)}"
             is PalaceEvent.Rate -> " q=${e.q}"
             is PalaceEvent.Judge -> " right=${e.right}"
+            is PalaceEvent.WikiQuery -> " text=${e.text}"
+            is PalaceEvent.WikiSearch -> " text=${e.text}"
             is PalaceEvent.SurfacesChanged -> " usable=${e.usable}"
             else -> ""
         }
@@ -720,6 +783,163 @@ class PalaceViewModel(
         }
     }
 
+    // ---- v0.2 content sources ----------------------------------------------------------------------
+
+    private fun popupBack() {
+        importError = null
+        importResult = null
+        popup =
+            when (popup) {
+                Popup.WIKI ->
+                    if (wikiDraft != null || wikiLoading != null) {
+                        wikiJob?.cancel()
+                        wikiDraft = null
+                        wikiLoading = null
+                        wikiFailed = false
+                        Popup.WIKI
+                    } else Popup.NEW_PALACE
+                Popup.POETRY, Popup.IMPORT -> Popup.NEW_PALACE
+                Popup.NEW_PALACE -> Popup.LIBRARY
+                else -> null
+            }
+    }
+
+    /** S28: a pack already in the library is opened, otherwise it joins the library (fresh SM-2). */
+    private fun buildPack(id: String) {
+        val pack = Presets.packs.firstOrNull { it.id == id } ?: return
+        if (lib.palaces.none { it.id == id }) {
+            lib = lib.copy(palaces = lib.palaces + pack, nodes = lib.nodes.filter { it.palaceId != id } + Presets.nodes(id))
+            PalaceLog.i("PACK built $id")
+        }
+        pickPalace(id)
+    }
+
+    private fun openWiki() {
+        if (popup != Popup.WIKI) {
+            wikiLang = if (zh) "zh" else "en"
+            wikiDraft = null
+            wikiLoading = null
+        }
+        wikiFailed = false
+        popup = Popup.WIKI
+        // one cheap request tells S29 from S31 before anything is typed (mainland China: S31 at once)
+        val client = wiki ?: return
+        if (wikiHits.isNotEmpty() || wikiDraft != null) return
+        val lang = wikiLang
+        wikiJob?.cancel()
+        wikiJob =
+            viewModelScope.launch {
+                try {
+                    client.probe(lang)
+                } catch (e: WikiUnreachable) {
+                    wikiFailed = true
+                    PalaceLog.w("WIKI unreachable: ${e.message}")
+                    publish()
+                }
+            }
+    }
+
+    private fun wikiType(text: String) {
+        wikiQuery = text
+        if (text.isBlank()) {
+            wikiJob?.cancel()
+            wikiHits = emptyList()
+            wikiSearching = false
+            return
+        }
+        wikiSearch(text, now = false)
+    }
+
+    /** Title search, 300 ms after the last key (design S29); a failure is S31. */
+    private fun wikiSearch(text: String, now: Boolean) {
+        val client = wiki ?: return
+        wikiQuery = text
+        wikiDraft = null
+        wikiLoading = null
+        wikiJob?.cancel()
+        wikiSearching = true
+        val lang = wikiLang
+        wikiJob =
+            viewModelScope.launch {
+                if (!now) delay(SEARCH_DEBOUNCE_MS)
+                try {
+                    wikiHits = client.search(lang, text).take(WIKI_HITS)
+                    wikiFailed = false
+                    PalaceLog.i("WIKI search lang=$lang q=$text hits=${wikiHits.size}")
+                } catch (e: WikiUnreachable) {
+                    wikiFailed = true
+                    PalaceLog.w("WIKI unreachable: ${e.message}")
+                } finally {
+                    wikiSearching = false
+                }
+                publish()
+            }
+    }
+
+    /** Fetch the article and turn it into a draft palace (design S30); every locus starts ticked. */
+    private fun wikiPick(title: String, description: String) {
+        val client = wiki ?: return
+        wikiJob?.cancel()
+        wikiLoading = title
+        wikiDescription = description
+        wikiDraft = null
+        val lang = wikiLang
+        wikiJob =
+            viewModelScope.launch {
+                try {
+                    val html = client.article(lang, title)
+                    val draft = withContext(Dispatchers.Default) { WikiBuilder.build(html, lang, title) }
+                    wikiDraft = draft
+                    wikiKeep = draft.loci.indices.toSet()
+                    wikiLoading = null
+                    wikiFailed = false
+                    PalaceLog.i("WIKI draft lang=$lang title=$title rev=${draft.revision} loci=${draft.loci.size} cards=${draft.cards}")
+                } catch (e: WikiUnreachable) {
+                    wikiFailed = true
+                    PalaceLog.w("WIKI unreachable: ${e.message}")
+                }
+                publish()
+            }
+    }
+
+    private fun wikiBuild() {
+        val draft = wikiDraft ?: return
+        val keep = wikiKeep.intersect(draft.loci.indices.toSet())
+        if (draft.loci.filterIndexed { i, _ -> i in keep }.sumOf { it.cards.size } < WikiBuilder.MIN_CARDS) return
+        val id = "wiki-" + clock().toString(36)
+        val (palace, nodes) = WikiBuilder.palace(draft, keep, id, lib.palaces.size % 6)
+        lib = lib.copy(palaces = lib.palaces + palace, nodes = lib.nodes + nodes)
+        PalaceLog.i("WIKI built id=$id title=${draft.title} loci=${keep.size} cards=${nodes.count { it.isCard }}")
+        wikiDraft = null
+        pickPalace(id)
+    }
+
+    /** The credit line on a card's back (design `panels.cardSource`). */
+    private fun sourceOf(n: Node, t: PalaceTree): String {
+        val p = lib.palaces.firstOrNull { it.id == n.palaceId } ?: return ""
+        p.wiki?.let { w -> return if (zh) "维基百科《${w.title}》· CC BY-SA 4.0" else "Wikipedia \u201C${w.title}\u201D · CC BY-SA 4.0" }
+        if (!Presets.isPack(p.id)) return ""
+        val poem = n.parentId?.let { t[it] }?.takeIf { it.author.isNotEmpty() } ?: return ""
+        return "${poem.title} · ${poem.author}"
+    }
+
+    private fun packsUi(): List<PackUi> =
+        Presets.packs.map { p ->
+            val t = PalaceTree(p.id, Presets.nodes(p.id))
+            PackUi(p.id, p.name(zh), t.loci.map { it.title }, t.loci.sumOf { t.children(it.id).size }, t.cards.size, lib.palaces.any { it.id == p.id })
+        }
+
+    private fun wikiUi(): WikiUi? {
+        if (popup != Popup.WIKI) return null
+        val preview =
+            wikiDraft?.let { d ->
+                val loci = d.loci.mapIndexed { i, l -> WikiLocusUi(i, l.title, l.cards.size, l.cards.first().front, i in wikiKeep) }
+                val kept = loci.filter { it.kept }
+                WikiPreviewUi(d.title, wikiDescription.ifBlank { d.lead }, loci, kept.size, kept.sumOf { it.cards }, kept.sumOf { it.cards } < WikiBuilder.MIN_CARDS)
+            }
+        return WikiUi(wikiLang, wikiQuery, wikiSearching, wikiHits.map { WikiHitUi(it.title, it.description) }, wikiLoading, preview, wikiFailed)
+    }
+
     // =========================================================================================
     // state
     // =========================================================================================
@@ -851,8 +1071,8 @@ class PalaceViewModel(
             lib.palaces.map { p ->
                 val pt = tree(p.id)
                 val pl = lociOf(p.id)
-                PalaceRow(p.id, p.name(zh), p.color, pt.loci.size, pl.size, pt.cards.size, pt.depth, dueCards(p.id).size, p.id == lib.current)
-            }
+                PalaceRow(p.id, p.name(zh), p.color, pt.loci.size, pl.size, pt.cards.size, pt.depth, dueCards(p.id).size, p.id == lib.current, Presets.isPack(p.id), p.wiki != null)
+            }.sortedBy { if (it.poetry) 0 else 1 }
 
         var s =
             PalaceUiState(
@@ -888,6 +1108,8 @@ class PalaceViewModel(
                 nudge = nudge,
                 popup = popup,
                 importFiles = importFiles,
+                packs = if (popup == Popup.POETRY) packsUi() else emptyList(),
+                wiki = wikiUi(),
                 importResult = importResult,
                 importError = importError,
                 confirm = confirm,
@@ -933,7 +1155,7 @@ class PalaceViewModel(
         val passed = rc.steps.take(rc.step).map { it.nodeId }.toSet()
         val current = rc.current()?.nodeId
         if (node.isCard) {
-            val c = CellUi(id, 1, false, node.front, node.back, lit = true, flipped = rc.open == id, done = id in passed && id !in rc.wrong, wrong = id in rc.wrong)
+            val c = CellUi(id, 1, false, node.front, node.back, lit = true, flipped = rc.open == id, done = id in passed && id !in rc.wrong, wrong = id in rc.wrong, source = sourceOf(node, t))
             return OpenUi(id, l.number, listOf(palaceName), badge, false, emptyList(), c, cards = 1)
         }
         val level = rc.level(t) ?: id
@@ -954,13 +1176,14 @@ class PalaceViewModel(
                     flipped = rc.open == c.id,
                     done = done && c.id !in rc.wrong,
                     wrong = c.id in rc.wrong,
+                    source = if (c.isCard) sourceOf(c, t) else "",
                 )
             }
         return OpenUi(id, l.number, listOf(palaceName) + names, "$badge ${names.joinToString(" › ")}", level != id, cells, cards = cards)
     }
 
     private fun cell(n: Node, index: Int, t: PalaceTree, pending: Set<String>, rated: Set<String>): CellUi =
-        if (n.isCard) CellUi(n.id, index, false, n.front, n.back, lit = n.id in pending, flipped = flipped == n.id, done = n.id in rated && n.id !in pending)
+        if (n.isCard) CellUi(n.id, index, false, n.front, n.back, lit = n.id in pending, flipped = flipped == n.id, done = n.id in rated && n.id !in pending, source = sourceOf(n, t))
         else CellUi(n.id, index, true, n.title, badge = t.cardsUnder(n.id).count { it.id in pending }, count = t.children(n.id).size, lit = t.cardsUnder(n.id).any { it.id in pending })
 
     private fun designState(s: PalaceUiState): String =
@@ -970,6 +1193,14 @@ class PalaceViewModel(
             s.confirm != null -> "S25"
             s.popup == Popup.SETTINGS -> "S24"
             s.popup == Popup.LIBRARY -> "S03"
+            s.popup == Popup.NEW_PALACE -> "S27"
+            s.popup == Popup.POETRY -> "S28"
+            s.popup == Popup.WIKI ->
+                when {
+                    s.wiki?.failed == true -> "S31"
+                    s.wiki?.preview != null || s.wiki?.loading != null -> "S30"
+                    else -> "S29"
+                }
             s.popup == Popup.IMPORT -> if (s.importError != null) "S05" else "S04"
             s.mode == Mode.PLACING ->
                 when {
@@ -1056,6 +1287,16 @@ class PalaceViewModel(
         publish()
     }
 
+    /** Drops every Wikipedia palace (and its pinned loci): S15W builds a fresh one each time. */
+    internal fun debugRemoveWiki() {
+        val ids = lib.palaces.filter { it.wiki != null }.map { it.id }.toSet()
+        if (ids.isEmpty()) return
+        removeLoci(lib.loci.filter { it.palaceId in ids })
+        lib = lib.copy(palaces = lib.palaces.filter { it.id !in ids }, nodes = lib.nodes.filter { it.palaceId !in ids }, current = if (lib.current in ids) Presets.TANG else lib.current)
+        save()
+        publish()
+    }
+
     internal fun debugReset() {
         nudgeJob?.cancel()
         laterJob?.cancel()
@@ -1071,6 +1312,14 @@ class PalaceViewModel(
         justPlaced = false
         lostDismissed = false
         debugBlock = null
+        wikiJob?.cancel()
+        wikiQuery = ""
+        wikiInput.value = ""
+        wikiHits = emptyList()
+        wikiDraft = null
+        wikiLoading = null
+        wikiSearching = false
+        wikiFailed = false
         if (phase != Phase.READY) phase = Phase.READY
         publish()
     }
@@ -1180,7 +1429,7 @@ class PalaceViewModel(
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val app = context.applicationContext
             val version = runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull() ?: ""
-            return PalaceViewModel(PalaceGraph.store(app), PalaceGraph.anchors, PickerActivity.importDir(app), version) as T
+            return PalaceViewModel(PalaceGraph.store(app), PalaceGraph.anchors, PickerActivity.importDir(app), version, PalaceGraph.wiki(app)) as T
         }
     }
 
@@ -1194,6 +1443,8 @@ class PalaceViewModel(
         const val SUMMARY_DELAY_MS = 3_000L
         const val LEVEL_BACK_MS = 1_000L
         const val IMPORT_RESULT_MS = 4_000L
+        const val SEARCH_DEBOUNCE_MS = 300L
+        const val WIKI_HITS = 8
         const val ANCHOR_NO_PERMISSION = -5
 
         private val CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳"

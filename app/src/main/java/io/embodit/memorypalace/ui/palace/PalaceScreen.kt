@@ -19,6 +19,7 @@ import com.pico.spatial.ui.foundation.dsl.unregisterSystem
 import io.embodit.memorypalace.platform.PalaceLog
 import io.embodit.memorypalace.platform.PickerActivity
 import io.embodit.memorypalace.ui.palace.components.LocalPalaceResources
+import io.embodit.memorypalace.ui.palace.components.LocalWikiInput
 import io.embodit.memorypalace.ui.palace.components.PalaceStage
 import io.embodit.memorypalace.ui.palace.components.localizedResources
 import io.embodit.memorypalace.ui.palace.debug.Probe
@@ -89,7 +90,7 @@ fun PalaceScreen() {
 
     // the in-app language switches at run time: panels read their copy from this local
     val resources = remember(state.language, context) { localizedResources(context, state.language) }
-    CompositionLocalProvider(LocalPalaceResources provides resources) {
+    CompositionLocalProvider(LocalPalaceResources provides resources, LocalWikiInput provides viewModel.wikiInput) {
         PalaceStage(state = state, scene = scene, onEvent = viewModel::onEvent)
     }
 }

@@ -11,11 +11,16 @@ data class Palace(
     val nameEn: String,
     /** Index into the design's `deckColors`. */
     val color: Int,
-    /** `preset:<id>` or `import:<file name>`. */
+    /** `preset:<id>`, `pack:<id>`, `import:<file name>` or `wiki:<lang>:<title>`. */
     val source: String,
+    /** Built from a Wikipedia article (CC BY-SA 4.0): what every card's back credits. */
+    val wiki: WikiSource? = null,
 ) {
     fun name(zh: Boolean): String = if (zh) nameZh else nameEn
 }
+
+/** The article a palace was built from (design `contentSources.wikipedia.builder.attribution`). */
+data class WikiSource(val lang: String, val title: String, val url: String, val revision: Long)
 
 enum class NodeKind { GROUP, CARD }
 
@@ -36,6 +41,8 @@ data class Node(
     val front: String = "",
     val back: String = "",
     val srs: Srs? = null,
+    /** A poem's author (poetry packs: the sub-locus is a poem). */
+    val author: String = "",
 ) {
     val isCard: Boolean
         get() = kind == NodeKind.CARD

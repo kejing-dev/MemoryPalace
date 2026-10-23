@@ -65,14 +65,20 @@ internal fun LibraryPanel(state: PalaceUiState?, onEvent: (PalaceEvent) -> Unit)
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (state == null) return@Column
-        if (state.popup == Popup.IMPORT) ImportView(state, onEvent) else Palaces(state, onEvent)
+        when (state.popup) {
+            Popup.IMPORT -> ImportView(state, onEvent)
+            Popup.NEW_PALACE -> NewPalaceView(onEvent)
+            Popup.POETRY -> PoetryView(state, onEvent)
+            Popup.WIKI -> WikiView(state, onEvent)
+            else -> Palaces(state, onEvent)
+        }
     }
 }
 
 @Composable
-private fun Header(title: String, back: Boolean, onEvent: (PalaceEvent) -> Unit, trailing: @Composable () -> Unit) {
+internal fun Header(title: String, back: Boolean, onEvent: (PalaceEvent) -> Unit, trailing: @Composable () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (back) Key("import_back", R.drawable.ic_up, rs(R.string.cd_back), { onEvent(PalaceEvent.ImportBack) }, size = 40.dp)
+        if (back) Key("popup_back", R.drawable.ic_up, rs(R.string.cd_back), { onEvent(PalaceEvent.PopupBack) }, size = 40.dp)
         Text(text = title, color = PicoTheme.colorScheme.labelPrimary, style = PicoTheme.typography.headlineSmall, maxLines = 1, modifier = Modifier.weight(1f))
         trailing()
         Key("popup_close", R.drawable.ic_close, rs(R.string.cd_close_popup), { onEvent(PalaceEvent.PopupClosed) }, size = 40.dp)
@@ -81,20 +87,30 @@ private fun Header(title: String, back: Boolean, onEvent: (PalaceEvent) -> Unit,
 
 @Composable
 private fun androidx.compose.foundation.layout.ColumnScope.Palaces(state: PalaceUiState, onEvent: (PalaceEvent) -> Unit) {
-    Header(rs(R.string.library_title), false, onEvent) { Key("import", R.drawable.ic_import, rs(R.string.import_title), { onEvent(PalaceEvent.ImportClicked) }, size = 40.dp) }
+    Header(rs(R.string.library_title), false, onEvent) { Secondary("new_palace", rs(R.string.new_palace), { onEvent(PalaceEvent.NewPalace) }, icon = R.drawable.ic_add) }
     val list = rememberLazyListState()
+    val groups = state.palaces.groupBy { it.poetry }
     Box(modifier = Modifier.weight(1f)) {
         LazyColumn(state = list, modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
-            items(state.palaces, key = { it.id }) { row ->
+            for (poetry in listOf(true, false)) {
+                val rows = groups[poetry] ?: continue
+                item(key = "group_$poetry") {
+                    Text(text = rs(if (poetry) R.string.group_poetry else R.string.group_mine), color = PicoTheme.colorScheme.labelTertiary, style = PalaceType.label, modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 2.dp))
+                }
+            items(rows, key = { it.id }) { row ->
                 ListItem(
                     headlineContent = { Text(text = row.name, style = PalaceType.title, color = PicoTheme.colorScheme.labelPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     modifier = Modifier.fillMaxWidth().height(Row72).clip(RoundedCornerShape(16.dp)).clickable { onEvent(PalaceEvent.PalacePicked(row.id)) }.probe("palace_${row.id}"),
-                    supportingContent = { Text(text = rs(R.string.library_row, row.loci, row.cards, row.dueToday), style = PalaceType.body, color = PicoTheme.colorScheme.labelSecondary, maxLines = 1) },
+                    supportingContent = {
+                        val line = rs(R.string.library_row, row.loci, row.cards, row.dueToday)
+                        Text(text = if (row.wiki) line + " · " + rs(R.string.from_wikipedia) else line, style = PalaceType.body, color = PicoTheme.colorScheme.labelSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    },
                     leadingContent = { Box(modifier = Modifier.size(14.dp).clip(CircleShape).background(PalaceColors.deck(row.color))) },
                     trailingContent = {
                         if (row.current) Icon(painter = painterResource(R.drawable.ic_check), contentDescription = rs(R.string.cd_current), modifier = Modifier.size(24.dp), tint = PicoTheme.colorScheme.interaction)
                     },
                 )
+            }
             }
         }
         ScrollIndicator(state = list)

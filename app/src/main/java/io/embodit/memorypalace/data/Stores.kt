@@ -10,6 +10,7 @@ import io.embodit.memorypalace.domain.Quat4
 import io.embodit.memorypalace.domain.Srs
 import io.embodit.memorypalace.domain.SurfaceKind
 import io.embodit.memorypalace.domain.Vec3
+import io.embodit.memorypalace.domain.WikiSource
 import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
@@ -83,11 +84,17 @@ class FilePalaceStore(context: Context) : PalaceStore {
     }
 }
 
-/** JSON codec of the library; presets are rebuilt from code and only their SM-2 records are stored. */
+/**
+ * JSON codec of the library; bundled palaces (presets and poetry packs) are rebuilt from code and only
+ * their SM-2 records are stored, plus which packs were built. Imported and Wikipedia palaces are stored whole.
+ */
 object LibraryCodec {
+    private val bundledIds: Set<String> = (Presets.palaces + Presets.packs).map { it.id }.toSet()
+
     fun encode(lib: Library): Triple<String, String, String> {
-        val presetIds = Presets.palaces.map { it.id }.toSet()
-        val palaces = JSONObject().put("current", lib.current).put("imported", JSONArray().apply { lib.palaces.filter { it.id !in presetIds }.forEach { put(palace(it)) } })
+        val presetIds = bundledIds
+        val packs = JSONArray().apply { lib.palaces.filter { Presets.isPack(it.id) }.forEach { put(it.id) } }
+        val palaces = JSONObject().put("current", lib.current).put("packs", packs).put("imported", JSONArray().apply { lib.palaces.filter { it.id !in presetIds }.forEach { put(palace(it)) } })
         val nodes =
             JSONObject()
                 .put("imported", JSONArray().apply { lib.nodes.filter { it.palaceId !in presetIds }.forEach { put(node(it)) } })
@@ -104,28 +111,40 @@ object LibraryCodec {
         val srsMap = n.optJSONObject("srs") ?: JSONObject()
         val presetNodes = Presets.nodes().map { node -> srsMap.optJSONObject(node.id)?.let { node.copy(srs = srs(it)) } ?: node }
         val importedNodes = n.optJSONArray("imported").objects().mapNotNull { runCatching { node(it) }.getOrNull() }
-        val palaces = Presets.palaces + imported
+        val built = p.optJSONArray("packs")?.let { a -> (0 until a.length()).map { a.optString(it) } }.orEmpty().toSet()
+        val palaces = Presets.palaces + Presets.packs.filter { it.id in built && it !in Presets.palaces } + imported
         val ids = (presetNodes + importedNodes).map { it.id }.toSet()
         val loci = l.objects().mapNotNull { runCatching { locus(it) }.getOrNull() }.filter { it.nodeId in ids }
-        val current = p.optString("current").takeIf { c -> palaces.any { it.id == c } } ?: Presets.DYNASTIES
+        // v0.2: a first launch opens on Tang Poems (design S02); a saved choice is kept
+        val current = p.optString("current").takeIf { c -> palaces.any { it.id == c } } ?: Presets.TANG
         return Library(palaces, presetNodes + importedNodes, loci, current)
     }
 
     private fun JSONArray?.objects(): List<JSONObject> = if (this == null) emptyList() else (0 until length()).mapNotNull { optJSONObject(it) }
 
-    private fun palace(x: Palace) = JSONObject().put("id", x.id).put("zh", x.nameZh).put("en", x.nameEn).put("color", x.color).put("source", x.source)
+    private fun palace(x: Palace) =
+        JSONObject().put("id", x.id).put("zh", x.nameZh).put("en", x.nameEn).put("color", x.color).put("source", x.source)
+            .apply { x.wiki?.let { w -> put("wiki", JSONObject().put("lang", w.lang).put("title", w.title).put("url", w.url).put("revision", w.revision)) } }
 
-    private fun palace(o: JSONObject) = Palace(o.getString("id"), o.getString("zh"), o.optString("en", o.getString("zh")), o.optInt("color"), o.optString("source"))
+    private fun palace(o: JSONObject) =
+        Palace(
+            o.getString("id"), o.getString("zh"), o.optString("en", o.getString("zh")), o.optInt("color"), o.optString("source"),
+            o.optJSONObject("wiki")?.let { w -> WikiSource(w.optString("lang"), w.optString("title"), w.optString("url"), w.optLong("revision")) },
+        )
 
     private fun node(x: Node) =
         JSONObject().put("id", x.id).put("palace", x.palaceId).put("parent", x.parentId ?: JSONObject.NULL).put("order", x.order).put("kind", x.kind.name)
-            .put("title", x.title).put("front", x.front).put("back", x.back).apply { x.srs?.let { put("srs", srs(it)) } }
+            .put("title", x.title).put("front", x.front).put("back", x.back).apply {
+                x.srs?.let { put("srs", srs(it)) }
+                if (x.author.isNotEmpty()) put("author", x.author)
+            }
 
     private fun node(o: JSONObject) =
         Node(
             o.getString("id"), o.getString("palace"), if (o.isNull("parent")) null else o.getString("parent"), o.optInt("order"),
             NodeKind.valueOf(o.getString("kind")), o.optString("title"), o.optString("front"), o.optString("back"),
             o.optJSONObject("srs")?.let { srs(it) } ?: if (o.getString("kind") == "CARD") Srs() else null,
+            o.optString("author"),
         )
 
     private fun srs(s: Srs) = JSONObject().put("ef", s.ef.toDouble()).put("interval", s.interval).put("reps", s.reps).put("due", s.dueDay ?: JSONObject.NULL).put("lapses", s.lapses)

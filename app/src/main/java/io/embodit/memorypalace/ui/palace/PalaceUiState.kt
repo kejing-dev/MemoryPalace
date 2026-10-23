@@ -10,7 +10,8 @@ enum class Phase { STARTING, NO_PERMISSION, SCANNING, READY }
 
 enum class Mode { HOME, PLACING, REVIEW, REVIEW_DONE, RECALL, RECALL_DONE }
 
-enum class Popup { LIBRARY, IMPORT, SETTINGS }
+/** Pages of the library popup (v0.2: new palace -> poetry / Wikipedia / file) and settings. */
+enum class Popup { LIBRARY, NEW_PALACE, POETRY, WIKI, IMPORT, SETTINGS }
 
 enum class HomeKind { EMPTY, DUE, DONE, LOST }
 
@@ -19,7 +20,42 @@ enum class ConfirmKind { TEAR_DOWN, DELETE_LOCUS, END_PLACING }
 enum class NudgeKind { TOO_FAR, GO_FIRST, FLIP_FIRST, PLACE_FAILED }
 
 /** One row of the palace library (design S03). */
-data class PalaceRow(val id: String, val name: String, val color: Int, val loci: Int, val placed: Int, val cards: Int, val depth: Int, val dueToday: Int, val current: Boolean)
+data class PalaceRow(
+    val id: String,
+    val name: String,
+    val color: Int,
+    val loci: Int,
+    val placed: Int,
+    val cards: Int,
+    val depth: Int,
+    val dueToday: Int,
+    val current: Boolean,
+    /** In the 「诗词」 group (a poetry pack) rather than 「我的」. */
+    val poetry: Boolean = false,
+    /** Built from Wikipedia (its subtitle says so). */
+    val wiki: Boolean = false,
+)
+
+/** One poetry pack on the S28 page. */
+data class PackUi(val id: String, val name: String, val poets: List<String>, val poems: Int, val cards: Int, val built: Boolean)
+
+/** The Wikipedia pages (S29 search, S30 preview, S31 unreachable). */
+data class WikiUi(
+    val lang: String,
+    val query: String,
+    val searching: Boolean,
+    val hits: List<WikiHitUi>,
+    /** Fetching / building the picked article. */
+    val loading: String?,
+    val preview: WikiPreviewUi?,
+    val failed: Boolean,
+)
+
+data class WikiHitUi(val title: String, val description: String)
+
+data class WikiPreviewUi(val title: String, val description: String, val loci: List<WikiLocusUi>, val keptLoci: Int, val keptCards: Int, val tooShort: Boolean)
+
+data class WikiLocusUi(val index: Int, val title: String, val cards: Int, val firstFront: String, val kept: Boolean)
 
 /** A pinned level-1 locus of the current palace, as the scene draws it. */
 data class LocusUi(
@@ -62,6 +98,8 @@ data class CellUi(
     /** Rated in this round / judged right: a jade tick. */
     val done: Boolean = false,
     val wrong: Boolean = false,
+    /** The small credit line on the back: 《春望》· 杜甫, or 维基百科《长城》· CC BY-SA 4.0. */
+    val source: String = "",
 )
 
 /** The open locus: a title above and the grid below; for a single-card locus the plaque is the card. */
@@ -149,6 +187,8 @@ data class PalaceUiState(
     val nudge: Nudge? = null,
     val popup: Popup? = null,
     val importFiles: List<ImportFileUi> = emptyList(),
+    val packs: List<PackUi> = emptyList(),
+    val wiki: WikiUi? = null,
     val importResult: ImportResultUi? = null,
     val importError: ImportError? = null,
     val confirm: ConfirmKind? = null,

@@ -2,8 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- No network, no camera (design offline): plane detection and world anchors ask for no runtime
+    <!-- v0.2: the network only for Wikipedia (search, one article); everything else, built palaces
+         included, works offline. No camera. Plane detection and world anchors ask for no runtime
          permission on SDK 6.1 (plane-detection / spatial-anchor docs list none; device to be confirmed). -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".platform.SpatialApplication"

@@ -14,6 +14,7 @@ import io.embodit.memorypalace.domain.Sm2
 import io.embodit.memorypalace.domain.Spot
 import io.embodit.memorypalace.domain.SurfaceKind
 import io.embodit.memorypalace.domain.Vec3
+import io.embodit.memorypalace.platform.PalaceGraph
 import io.embodit.memorypalace.platform.PalaceLog
 import io.embodit.memorypalace.platform.PickerActivity
 import io.embodit.memorypalace.ui.palace.ConfirmKind
@@ -51,6 +52,8 @@ import org.json.JSONObject
  * - `place`                   pinch on the head-ray hit, like a real pinch on the surface looked at
  * - `samples`                 write the sample import files into files/import/
  * - `hold` s=on|off           transient states (flash, nudges, import result) stay
+ * - `wikiFail` s=on|off       every Wikipedia request fails (S31)
+ * - `wikiFixture` s=on|off    Wikipedia answers from assets/wiki (长城, 长城镇, Great Wall of China): QA offline
  *
  * Reading back
  * - `dump` (also files/dump.json) · `pose` · `panels` · `planes` · `bounds`
@@ -89,6 +92,8 @@ internal object DebugCommands {
             }
             "samples" -> PalaceLog.i("CMD samples ${samples(context)}")
             "hold" -> vm.holdTransients = s != "off"
+            "wikiFail" -> PalaceGraph.wiki(context).failAll = s != "off"
+            "wikiFixture" -> PalaceGraph.wiki(context).fixtures = s != "off"
             "dump" -> dump(context, vm, scene)
             "pose" -> PalaceLog.i(scene.poseLine())
             "panels" -> scene.panelLines().forEach { PalaceLog.i(it) }
@@ -160,6 +165,21 @@ internal object DebugCommands {
                 name == "replace_lost" -> PalaceEvent.ReplaceLost
                 name == "enter" -> PalaceEvent.EnterAnyway
                 name == "grant" -> PalaceEvent.GrantPermission
+                // v0.2 content sources
+                name == "new_palace" -> PalaceEvent.NewPalace
+                name == "back" -> PalaceEvent.PopupBack
+                name == "source_poetry" -> PalaceEvent.SourcePoetry
+                name == "source_wiki" -> PalaceEvent.SourceWiki
+                name == "source_file" -> PalaceEvent.SourceFile
+                name.startsWith("pack_build_") -> PalaceEvent.BuildPack(name.removePrefix("pack_build_"))
+                name.startsWith("wiki_search_") -> PalaceEvent.WikiSearch(name.removePrefix("wiki_search_").replace('_', ' '))
+                name.startsWith("wiki_lang_") -> PalaceEvent.WikiLang(name.removePrefix("wiki_lang_"))
+                name.startsWith("wiki_pick_") ->
+                    vm.state.value.wiki?.hits?.getOrNull(name.removePrefix("wiki_pick_").toIntOrNull() ?: 0)?.let { PalaceEvent.WikiPick(it.title, it.description) }
+                name.startsWith("wiki_toggle_") -> PalaceEvent.WikiToggle(name.removePrefix("wiki_toggle_").toIntOrNull() ?: 0)
+                name == "wiki_build" -> PalaceEvent.WikiBuild
+                name == "wiki_retry" -> PalaceEvent.WikiRetry
+                name == "go_poetry" -> PalaceEvent.GoPoetry
                 else -> null
             }
         if (e == null) PalaceLog.w("CMD ui unknown '$name'") else vm.onEvent(e)
@@ -221,7 +241,11 @@ internal object DebugCommands {
                 vm.debugPhase(Phase.NO_PERMISSION)
                 done(vm, id)
             }
-            "S02" -> vm.debugSeed(emptyList()) { done(vm, id) }
+            "S02" -> {
+                // v0.2: a first launch opens on Tang Poems
+                vm.debugPalace(Presets.TANG)
+                vm.debugSeed(emptyList()) { done(vm, id) }
+            }
             "S03" -> seed(vm, scene, null) {
                 vm.debugDue(true)
                 vm.debugPopup(Popup.LIBRARY)
@@ -270,27 +294,91 @@ internal object DebugCommands {
                     later(1500) { done(vm, id) }
                 }
             }
-            "S13", "S15" -> seed(vm, scene, 1) {
+            "S13" -> seed(vm, scene, 1) {
                 vm.debugDue(true)
                 vm.onEvent(PalaceEvent.StartReview)
                 later(1200) {
                     vm.debugOpen(locusId(vm, 2))
                     // the scene learns about the open locus on the next render: pinch after it
                     later(800) {
-                        if (id == "S15") vm.state.value.open?.cells?.firstOrNull { it.lit }?.let { cellTap(vm, scene, it.nodeId) }
                         done(vm, id)
                     }
                 }
             }
-            "S14" -> seed(vm, scene, 0) {
-                vm.debugDue(true)
-                vm.onEvent(PalaceEvent.StartReview)
-                later(1200) {
-                    vm.debugOpen(locusId(vm, 1))
-                    later(800) {
-                        vm.state.value.open?.cells?.firstOrNull { it.group }?.let { cellTap(vm, scene, it.nodeId) }
-                        done(vm, id)
+            // v0.2 acceptance: Tang Poems, walk up to 杜甫, into 《春望》, 国破山河在 -> 城春草木深
+            "S14", "S15" -> {
+                vm.debugPalace(Presets.TANG)
+                seed(vm, scene, 1) {
+                    vm.debugDue(true)
+                    vm.onEvent(PalaceEvent.StartReview)
+                    later(1200) {
+                        vm.debugOpen(locusId(vm, 2))
+                        later(800) {
+                            vm.state.value.open?.cells?.firstOrNull { it.group }?.let { cellTap(vm, scene, it.nodeId) }
+                            if (id == "S15") later(800) { vm.state.value.open?.cells?.firstOrNull { it.lit }?.let { cellTap(vm, scene, it.nodeId) } }
+                            later(if (id == "S15") 1600 else 600) { done(vm, id) }
+                        }
                     }
+                }
+            }
+            // a card of a Wikipedia palace (built from the 长城 fixture): the CC BY-SA credit on its back
+            "S15W" -> {
+                vm.debugRemoveWiki()
+                val wiki = PalaceGraph.wiki(context)
+                wiki.fixtures = true
+                wiki.failAll = false
+                vm.onEvent(PalaceEvent.SourceWiki)
+                vm.onEvent(PalaceEvent.WikiLang("zh"))
+                vm.onEvent(PalaceEvent.WikiPick("长城", "中国古代的一系列边界防御工事"))
+                later(2500) {
+                    vm.onEvent(PalaceEvent.WikiBuild)
+                    seed(vm, scene, 0) {
+                        vm.debugDue(true)
+                        vm.onEvent(PalaceEvent.StartReview)
+                        later(1200) {
+                            vm.debugOpen(locusId(vm, 1))
+                            later(800) {
+                                vm.state.value.open?.cells?.firstOrNull { it.lit }?.let { cellTap(vm, scene, it.nodeId) }
+                                later(800) { done(vm, id) }
+                            }
+                        }
+                    }
+                }
+            }
+            "S27" -> {
+                vm.debugPopup(Popup.NEW_PALACE)
+                done(vm, id)
+            }
+            "S28", "S28B" -> {
+                vm.debugPalace(Presets.TANG)
+                vm.debugSeed(emptyList()) {
+                    vm.onEvent(PalaceEvent.NewPalace)
+                    vm.onEvent(PalaceEvent.SourcePoetry)
+                    // S28B: Tang Poems' button (already in the library) leads to its home, 0 / 5 loci
+                    if (id == "S28B") vm.onEvent(PalaceEvent.BuildPack(Presets.TANG))
+                    done(vm, id)
+                }
+            }
+            "S29", "S30", "S30B" -> {
+                val wiki = PalaceGraph.wiki(context)
+                wiki.fixtures = true
+                wiki.failAll = false
+                vm.onEvent(PalaceEvent.SourceWiki)
+                vm.onEvent(PalaceEvent.WikiLang("zh"))
+                vm.onEvent(PalaceEvent.WikiSearch("长城"))
+                when (id) {
+                    "S30" -> later(800) { vm.onEvent(PalaceEvent.WikiPick("长城", "中国古代的一系列边界防御工事")) }
+                    "S30B" -> later(800) { vm.onEvent(PalaceEvent.WikiPick("长城镇", "")) }
+                }
+                later(2500) { done(vm, id) }
+            }
+            "S31" -> {
+                val wiki = PalaceGraph.wiki(context)
+                wiki.failAll = true
+                vm.onEvent(PalaceEvent.SourceWiki)
+                later(1500) {
+                    wiki.failAll = false
+                    done(vm, id)
                 }
             }
             "S16" -> seed(vm, scene, null) {

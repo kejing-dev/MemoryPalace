@@ -112,7 +112,7 @@
     <string name="settings_tear">拆掉这个宫殿</string>
     <string name="settings_tear_sub">复习进度会保留</string>
     <string name="settings_about">关于</string>
-    <string name="settings_about_sub">v%s · 间隔算法 SM-2</string>
+    <string name="settings_about_sub">v%s · 间隔算法 SM-2 · 诗词原文公有领域 · 维基百科 CC BY-SA 4.0</string>
 
     <string name="card_where">这里是哪里？</string>
     <string name="card_pinch">捏一下揭开</string>
@@ -125,4 +125,31 @@
     <string name="nudge_closer">再近 %s m</string>
     <string name="nudge_go_first">先去 %s →</string>
     <string name="nudge_flip_first">先翻 %s</string>
+
+    <!-- v0.2 content sources: S27 - S31 -->
+    <string name="new_palace">新宫殿</string>
+    <string name="new_palace_title">新宫殿</string>
+    <string name="group_poetry">诗词</string>
+    <string name="group_mine">我的</string>
+    <string name="from_wikipedia">来自维基百科</string>
+    <string name="source_poetry">诗词</string>
+    <string name="source_poetry_sub">离线 · 开箱即用</string>
+    <string name="source_wiki">维基百科</string>
+    <string name="source_wiki_sub">要联网 · 中国大陆打不开</string>
+    <string name="source_file">从文件导入</string>
+    <string name="source_file_sub">CSV、Anki 纯文本、缩进 TXT</string>
+    <string name="pack_count">%1$d 位诗人 · %2$d 首 · %3$d 张卡</string>
+    <string name="pack_in_library">已在宫殿库</string>
+    <string name="pack_build">建成宫殿</string>
+    <string name="pack_license">只收原文，属于公有领域（不带现代注释和译文）。</string>
+    <string name="wiki_try">试试：</string>
+    <string name="wiki_no_hits">没有这个标题的条目</string>
+    <string name="wiki_hint">搜一个条目：每个章节变成一个位置，句子变成挖空卡。</string>
+    <string name="wiki_license">内容来自维基百科 · CC BY-SA 4.0</string>
+    <string name="wiki_too_short">这个条目太短，换一个</string>
+    <string name="wiki_build">建成宫殿（%1$d 个位置 · %2$d 张卡）</string>
+    <string name="wiki_unreachable">这个网络打不开维基百科</string>
+    <string name="wiki_unreachable_sub">在中国大陆需要用诗词包或导入</string>
+    <string name="wiki_retry">再试一次</string>
+    <string name="wiki_go_poetry">去诗词包</string>
 </resources>
