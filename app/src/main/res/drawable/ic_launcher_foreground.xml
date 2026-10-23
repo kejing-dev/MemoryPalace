@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher foreground (108 x 108, content inside the 66 dp safe zone): a palace eave over a porcelain
+     plaque with a brass pin, and the amber thread of memory linking three lantern dots below.
+     Same shapes as tools/make_icon.py (3D icon layers, 512 export). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- the eave -->
+    <path android:fillColor="#FFF4F0E8" android:pathData="M22,38 Q36,35 54,23 Q72,35 86,38 L81,41 L27,41 Z" />
+    <!-- the plaque: porcelain, amber band on the left -->
+    <path android:fillColor="#FFF4F0E8" android:pathData="M35,45h38a3,3 0,0 1,3 3v19a3,3 0,0 1,-3 3h-38a3,3 0,0 1,-3 -3v-19a3,3 0,0 1,3 -3z" />
+    <path android:fillColor="#FFFFB648" android:pathData="M35,45h2.5v25h-2.5a3,3 0,0 1,-3 -3v-19a3,3 0,0 1,3 -3z" />
+    <path android:fillColor="#FF1F2430" android:pathData="M43,54h24v3h-24z M43,61h16v3h-16z" />
+    <!-- the brass pin -->
+    <path android:fillColor="#FFC9A35A" android:pathData="M54,43.5m-3.5,0a3.5,3.5 0,1 1,7 0a3.5,3.5 0,1 1,-7 0" />
+    <!-- the thread of memory and its three lantern dots -->
+    <path android:strokeColor="#FFFFB648" android:strokeWidth="2.4" android:strokeLineCap="round" android:fillColor="#00000000" android:pathData="M30,82 Q42,74 54,80 Q66,86 78,78" />
+    <path android:fillColor="#FFFFB648" android:pathData="M30,82m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0 M54,80m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0 M78,78m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
+</vector>

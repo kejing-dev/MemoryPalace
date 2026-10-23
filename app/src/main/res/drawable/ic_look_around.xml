@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- scanning: an eye inside a turning ring -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round" android:fillColor="#00000000" android:pathData="M3.5,12a8.5,8.5 0,0 1,15 -5.5M20.5,12a8.5,8.5 0,0 1,-15 5.5" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M18.5,3.5v4h-4zM5.5,20.5v-4h4z" />
+    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd" android:pathData="M12,8.5c3,0 5,3.5 5,3.5s-2,3.5 -5,3.5 -5,-3.5 -5,-3.5 2,-3.5 5,-3.5zM12,10.4a1.6,1.6 0,1 0,0 3.2a1.6,1.6 0,1 0,0 -3.2z" />
+</vector>

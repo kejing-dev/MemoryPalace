@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- palace-night indigo: the app's own launcher colour (no other factory app uses it, see the notes' icon registry) -->
+    <color name="ic_launcher_background">#FF3B2A6B</color>
+</resources>

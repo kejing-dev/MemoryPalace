@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Memory Palace</string>
+    <string name="lang_code">en</string>
+
+    <!-- S01 / S23 -->
+    <string name="scan_title">Look around slowly</string>
+    <string name="scan_found">%d surfaces found</string>
+    <string name="scan_hint">Move closer to a wall, or turn on a light</string>
+    <string name="scan_enter">Go in anyway</string>
+    <string name="perm_title">Spatial access needed</string>
+    <string name="perm_body">to put the palace into your room</string>
+    <string name="perm_grant">Allow</string>
+
+    <!-- home: S02 S09 S21 S22 -->
+    <string name="home_placed_of">loci placed</string>
+    <string name="home_cards">%1$d cards, %2$d levels deep</string>
+    <string name="home_start_placing">Start placing</string>
+    <string name="home_due_cards">cards due today</string>
+    <string name="home_due_loci">in %d loci</string>
+    <string name="home_walk_hint">Walk around these loci so the device remembers them</string>
+    <string name="home_start_review">Start review</string>
+    <string name="home_done">Done for today</string>
+    <string name="home_tomorrow">%d due tomorrow</string>
+    <string name="home_recall">Walk it in order</string>
+    <string name="lost_line">loci can\'t be found (%d cards)</string>
+    <string name="lost_hint">Changed rooms? Go back and look again</string>
+    <string name="lost_retry">Look again</string>
+    <string name="lost_replace">Re-pin these %d</string>
+
+    <string name="cd_settings">Settings</string>
+    <string name="cd_place">Place</string>
+    <string name="cd_close">End</string>
+    <string name="cd_close_popup">Close</string>
+    <string name="cd_up">Up one level</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_undo">Undo</string>
+    <string name="cd_current">Current</string>
+
+    <!-- placing: S06 S07 S08 S26 -->
+    <string name="place_title">Locus %d</string>
+    <string name="place_done">Done</string>
+    <string name="place_pinned">%s pinned ✓</string>
+    <string name="place_failed">Didn\'t stick, pinch again</string>
+    <string name="place_inside">Inside: %s</string>
+    <string name="edit_hint">Delete it and pin again to move it; its cards go back to \"not placed\"</string>
+    <string name="edit_delete">Delete this locus</string>
+    <string name="block_surface">Can\'t pin here (floor, ceiling, door, window, sofa)</string>
+    <string name="block_too_low">Too low: keep it above 0.8 m</string>
+    <string name="block_too_high">Too high: keep it below 1.8 m</string>
+    <string name="block_too_far">More than 5 m from the other loci</string>
+    <string name="block_too_close">Less than 0.8 m from another locus</string>
+    <string name="block_table_edge">Keep it within 0.3 m of the table edge</string>
+    <string name="block_limit">300 loci already in this room</string>
+    <string name="block_no_surface">Look at a wall or a table top</string>
+
+    <!-- review: S10 - S16 -->
+    <string name="review_title">Review %1$d / %2$d</string>
+    <string name="review_next">Next: %1$s · %2$s</string>
+    <string name="review_almost">Finishing the round…</string>
+    <string name="review_here">%d due here</string>
+    <string name="review_flip">Pinch to turn it over</string>
+    <string name="review_rate">Did you remember it?</string>
+    <string name="review_back_hint">Goes back up when this level is done</string>
+    <string name="review_undo">Change rating</string>
+    <string name="review_undo_hint">for 3 s</string>
+    <string name="summary_title">✓ Round finished</string>
+    <string name="summary_line">Knew %1$d · Hazy %2$d · Forgot %3$d</string>
+    <string name="ok">OK</string>
+
+    <!-- recall: S17 - S20 -->
+    <string name="recall_title">In order · locus %d</string>
+    <string name="recall_go">Next locus: %1$s · %2$s</string>
+    <string name="recall_think">Think: what is at %s?</string>
+    <string name="recall_pinch">Pinch the plaque when you know</string>
+    <string name="recall_progress">%1$s: %2$d / %3$d</string>
+    <string name="recall_next_hint">Pinch the next card: front and back together, judge it yourself</string>
+    <string name="recall_judge">Right or wrong?</string>
+    <string name="result_title">Walk finished</string>
+    <string name="result_cards">cards right</string>
+    <string name="result_order_ok">Route order all right</string>
+    <string name="result_order_bad">Loci %s out of order</string>
+    <string name="result_wrong">%d wrong ones added to today</string>
+
+    <!-- confirm: S25 -->
+    <string name="confirm_tear">Take down the %2$d loci of \"%1$s\"?</string>
+    <string name="confirm_tear_body">Cards and progress stay; you can pin them again</string>
+    <string name="confirm_tear_yes">Take down</string>
+    <string name="confirm_delete">Delete locus %s?</string>
+    <string name="confirm_delete_body">Its cards go back to \"not placed\"</string>
+    <string name="confirm_delete_yes">Delete</string>
+    <string name="confirm_end">Stop placing now?</string>
+    <string name="confirm_end_body">Pinned loci stay</string>
+    <string name="confirm_end_yes">Stop</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- library / import: S03 S04 S05 -->
+    <string name="library_title">Palaces</string>
+    <string name="library_row">%1$d loci · %2$d cards · %3$d today</string>
+    <string name="import_title">Import</string>
+    <string name="import_pick">Choose from files…</string>
+    <string name="import_folder">Or put files in Android/data/io.embodit.memorypalace/files/import/</string>
+    <string name="import_empty_list">No files here yet</string>
+    <string name="import_lines">%d lines</string>
+    <string name="import_ok">Imported %1$d loci, %2$d cards (%3$d levels)</string>
+    <string name="import_split">split into %d palaces</string>
+    <string name="import_got_it">Got it</string>
+    <string name="import_error_empty">The file is empty</string>
+    <string name="import_error_columns">No front and back columns</string>
+    <string name="import_error_deep">More than 2 group levels</string>
+    <string name="import_error_encoding">Unknown text encoding (save it as UTF-8)</string>
+    <string name="import_formats">CSV front,back or group,front,back · Anki plain text · indented TXT</string>
+
+    <!-- settings: S24 -->
+    <string name="settings_title">Settings</string>
+    <string name="lang_system">System</string>
+    <string name="lang_zh">中文</string>
+    <string name="lang_en">English</string>
+    <string name="settings_relocate">Find loci again</string>
+    <string name="settings_tear">Take down this palace</string>
+    <string name="settings_tear_sub">Progress stays</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_sub">v%s · spacing: SM-2</string>
+
+    <!-- cards -->
+    <string name="card_where">Where is this?</string>
+    <string name="card_pinch">Pinch to reveal</string>
+    <string name="card_cards">%d cards</string>
+    <string name="rate_forgot">✕ Forgot</string>
+    <string name="rate_blurry">～ Hazy</string>
+    <string name="rate_remembered">✓ Knew</string>
+    <string name="judge_right">Right</string>
+    <string name="judge_wrong">Wrong</string>
+    <string name="nudge_closer">%s m closer</string>
+    <string name="nudge_go_first">Go to %s first →</string>
+    <string name="nudge_flip_first">Turn %s first</string>
+</resources>

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">记忆宫殿</string>
+    <string name="lang_code">zh</string>
+
+    <string name="scan_title">慢慢看看四周</string>
+    <string name="scan_found">已找到 %d 个表面</string>
+    <string name="scan_hint">靠近墙面、开灯试试</string>
+    <string name="scan_enter">先进去</string>
+    <string name="perm_title">需要空间权限</string>
+    <string name="perm_body">才能把宫殿放进你的房间</string>
+    <string name="perm_grant">授权</string>
+
+    <string name="home_placed_of">个位置已布置</string>
+    <string name="home_cards">%1$d 张卡，最深 %2$d 层</string>
+    <string name="home_start_placing">开始布置</string>
+    <string name="home_due_cards">张卡今日待复习</string>
+    <string name="home_due_loci">在 %d 个位置</string>
+    <string name="home_walk_hint">绕着这些位置走走，让设备记住</string>
+    <string name="home_start_review">开始复习</string>
+    <string name="home_done">今天完成了</string>
+    <string name="home_tomorrow">明天 %d 张</string>
+    <string name="home_recall">顺序走一遍</string>
+    <string name="lost_line">个位置找不到了（%d 张卡）</string>
+    <string name="lost_hint">换了房间？回到原来的房间再找找</string>
+    <string name="lost_retry">再找找</string>
+    <string name="lost_replace">重新贴这 %d 个</string>
+
+    <string name="cd_settings">设置</string>
+    <string name="cd_place">布置</string>
+    <string name="cd_close">结束</string>
+    <string name="cd_close_popup">关闭</string>
+    <string name="cd_up">返回上一层</string>
+    <string name="cd_back">返回</string>
+    <string name="cd_undo">撤销</string>
+    <string name="cd_current">当前</string>
+
+    <string name="place_title">布置 第 %d 个位置</string>
+    <string name="place_done">完成</string>
+    <string name="place_pinned">%s 钉好了 ✓</string>
+    <string name="place_failed">没钉住，再捏一下</string>
+    <string name="place_inside">里面：%s</string>
+    <string name="edit_hint">想换地方就删了重贴；里面的卡回到「没布置」</string>
+    <string name="edit_delete">删这个位置</string>
+    <string name="block_surface">这里贴不了（地板、天花板、门、窗、沙发）</string>
+    <string name="block_too_low">太低了，要离地 0.8 m 以上</string>
+    <string name="block_too_high">太高了，要离地 1.8 m 以下</string>
+    <string name="block_too_far">离别的位置超过 5 m</string>
+    <string name="block_too_close">离别的位置不到 0.8 m</string>
+    <string name="block_table_edge">贴在桌沿 0.3 m 以内</string>
+    <string name="block_limit">房间里已经有 300 个位置</string>
+    <string name="block_no_surface">看向一面墙或桌面</string>
+
+    <string name="review_title">复习 %1$d / %2$d</string>
+    <string name="review_next">下一个位置：%1$s · %2$s</string>
+    <string name="review_almost">这一轮马上完成…</string>
+    <string name="review_here">这里 %d 张到期</string>
+    <string name="review_flip">捏一下翻面</string>
+    <string name="review_rate">记得吗？评一下</string>
+    <string name="review_back_hint">评完会自动回到上一层</string>
+    <string name="review_undo">改评分</string>
+    <string name="review_undo_hint">3 秒内可改</string>
+    <string name="summary_title">✓ 这一轮完成了</string>
+    <string name="summary_line">记得 %1$d · 模糊 %2$d · 忘了 %3$d</string>
+    <string name="ok">好</string>
+
+    <string name="recall_title">顺序走 · 第 %d 个位置</string>
+    <string name="recall_go">下一个位置：%1$s · %2$s</string>
+    <string name="recall_think">想一想：%s 放的是哪一段？</string>
+    <string name="recall_pinch">想好了捏位置牌揭开</string>
+    <string name="recall_progress">%1$s：%2$d / %3$d</string>
+    <string name="recall_next_hint">捏开下一张，正反面一起显示，自己判对错</string>
+    <string name="recall_judge">对还是错？</string>
+    <string name="result_title">走完了</string>
+    <string name="result_cards">张对</string>
+    <string name="result_order_ok">位置顺序全对</string>
+    <string name="result_order_bad">位置 %s 走反了</string>
+    <string name="result_wrong">错的 %d 张已放进今日复习</string>
+
+    <string name="confirm_tear">拆掉「%1$s」的 %2$d 个位置？</string>
+    <string name="confirm_tear_body">卡和复习进度都保留，之后可以重新贴</string>
+    <string name="confirm_tear_yes">拆掉</string>
+    <string name="confirm_delete">删掉位置 %s？</string>
+    <string name="confirm_delete_body">里面的卡回到「没布置」</string>
+    <string name="confirm_delete_yes">删掉</string>
+    <string name="confirm_end">现在结束布置？</string>
+    <string name="confirm_end_body">已钉好的位置会保留</string>
+    <string name="confirm_end_yes">结束</string>
+    <string name="cancel">取消</string>
+
+    <string name="library_title">宫殿</string>
+    <string name="library_row">%1$d 个位置 · %2$d 张卡 · 今日 %3$d</string>
+    <string name="import_title">导入</string>
+    <string name="import_pick">从文件选择…</string>
+    <string name="import_folder">或把文件放进 Android/data/io.embodit.memorypalace/files/import/</string>
+    <string name="import_empty_list">这里还没有文件</string>
+    <string name="import_lines">%d 行</string>
+    <string name="import_ok">导入 %1$d 个位置、%2$d 张卡（最深 %3$d 层）</string>
+    <string name="import_split">拆成 %d 个宫殿</string>
+    <string name="import_got_it">知道了</string>
+    <string name="import_error_empty">文件是空的</string>
+    <string name="import_error_columns">没有正反两列</string>
+    <string name="import_error_deep">分组超过 2 级</string>
+    <string name="import_error_encoding">编码认不出（存成 UTF-8 再试）</string>
+    <string name="import_formats">CSV「正面,背面」或「分组,正面,背面」· Anki 纯文本 · 缩进 TXT</string>
+
+    <string name="settings_title">设置</string>
+    <string name="lang_system">跟随系统</string>
+    <string name="lang_zh">中文</string>
+    <string name="lang_en">English</string>
+    <string name="settings_relocate">重新找位置</string>
+    <string name="settings_tear">拆掉这个宫殿</string>
+    <string name="settings_tear_sub">复习进度会保留</string>
+    <string name="settings_about">关于</string>
+    <string name="settings_about_sub">v%s · 间隔算法 SM-2</string>
+
+    <string name="card_where">这里是哪里？</string>
+    <string name="card_pinch">捏一下揭开</string>
+    <string name="card_cards">%d 张</string>
+    <string name="rate_forgot">✕ 忘了</string>
+    <string name="rate_blurry">～ 模糊</string>
+    <string name="rate_remembered">✓ 记得</string>
+    <string name="judge_right">对</string>
+    <string name="judge_wrong">错</string>
+    <string name="nudge_closer">再近 %s m</string>
+    <string name="nudge_go_first">先去 %s →</string>
+    <string name="nudge_flip_first">先翻 %s</string>
+</resources>

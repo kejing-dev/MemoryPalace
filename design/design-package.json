@@ -1,0 +1,1041 @@
+{
+  "appId": "memory-palace",
+  "name": "记忆宫殿 Memory Palace",
+  "nameEn": "Memory Palace",
+  "nameZh": "记忆宫殿",
+  "packageName": "io.embodit.memorypalace",
+  "version": "v2 设计包（门 B 改：嵌套宫殿）",
+  "oneLiner": "把要背的东西做成一座宫殿：位置贴在自己房间的墙上、桌上连成一条路线，每个位置能就地展开成一组卡或子位置；走到 1 米内才展开、才能翻，走一圈就复习一遍。",
+  "oneLinerEn": "Build a memory palace in your room: loci pinned along a route, each opening in place into cards or sub-loci; nothing opens until you are within 1 m.",
+  "source": {
+    "pool": "state.json pool[memory-palace] + apps/_pool/round-1.json（调研第 1 轮，score 5/5，Q3 部分通过）",
+    "references": [
+      {
+        "name": "Anki",
+        "use": "机制来源：牌组导入、翻面-评分、SM-2 间隔重复、今日待复习计数（只借鉴算法，不搬 AGPL 代码）"
+      },
+      {
+        "name": "SpatialFlashcards（Quest，3.8★/8）",
+        "use": "形态存在证明：透视里翻卡、导入外部文本卡"
+      },
+      {
+        "name": "Memory Palace: Your Living Room（Quest，2.7★/6，已停更）",
+        "use": "反面案例：只把信息钉在客厅不够，必须有排程 + 路线 + 走到才能翻"
+      }
+    ],
+    "port": {
+      "keep": [
+        "牌组导入（CSV / Anki 纯文本导出）与 3 个预置牌组",
+        "翻面-评分 + SM-2 间隔重复",
+        "今日待复习计数",
+        "按路线顺序回忆"
+      ],
+      "spatialize": [
+        "卡钉在真实墙/门/桌面（WorldTrackingManager 锚点，退出重进仍在）",
+        "一条路线的站点聚在 ≤5 m 簇内，放完引导绕房间一圈",
+        "≤1 m 才能翻卡；回忆模式按路线顺序走、光线连站",
+        "距离 LOD：远处光点、中距离站号 + 距离、近处全文",
+        "落卡 = 注视表面捏合（空间尺落钉手势）"
+      ],
+      "drop": [
+        "账号同步",
+        "语音备忘 / TTS 朗读",
+        "头显内长文本编辑（只导入）",
+        "配对小游戏",
+        "黄色便签纸外观"
+      ]
+    }
+  },
+  "frame": {
+    "user": "备考学生、背单词的人、想记住顺序类知识（朝代、元素、演讲提纲）的人；在自己家/宿舍的房间里，站着走动，一次 10–15 分钟。",
+    "job": "把今天该复习的卡走一圈复习完；或者按路线顺序把一整套知识回忆一遍。",
+    "whySpatial": "记忆宫殿法的效力来自「知识绑在真实位置 + 身体走到那里」。去掉房间就是 Anki。",
+    "counterfactual2D": [
+      {
+        "affordance": "位置",
+        "flat": "Anki 列表里一张接一张",
+        "spatial": "卡绑在门框、书桌、窗边，位置本身成为提取线索；回忆时想到「门框上那张」"
+      },
+      {
+        "affordance": "身体 / 距离",
+        "flat": "手指一点就翻，零成本扫完",
+        "spatial": "必须走到 1 m 内才能翻，走路的动作把每张卡隔开，堵住「站在中间扫一面卡墙」的退化"
+      },
+      {
+        "affordance": "顺序 / 路线",
+        "flat": "列表顺序没有空间记忆",
+        "spatial": "一条发光的线按顺序连起各站，回忆模式只能按线走，顺序靠走过的路记住"
+      }
+    ],
+    "assumptions": [
+      {
+        "text": "用户会在同一个房间反复使用",
+        "confidence": "高",
+        "ifWrong": "锚点换房间找不回 → 走 S18「找不到卡」"
+      },
+      {
+        "text": "一个牌组 ≤30 张卡足够（经典记忆宫殿 10–30 个位置）",
+        "confidence": "中",
+        "ifWrong": "导入时已自动按 30 张拆成多个牌组；v2 再考虑「熟卡退役腾位置」"
+      },
+      {
+        "text": "头显里不打字，卡片内容只来自预置或导入",
+        "confidence": "高",
+        "ifWrong": "v2 加手机/网页编辑"
+      }
+    ]
+  },
+  "alternatives": [
+    {
+      "id": "A",
+      "name": "记忆之线（选中）",
+      "concept": "卡钉在真实表面，一条发光的线按顺序连起各站；远处只见光点，走近 1 m 卡片醒来；视野左下一块小面板",
+      "signature": "记忆之线 + 走近醒来的光点",
+      "risk": "锚点在真机上漂移；房间小时站点挤",
+      "verdict": "选中：空间是承重的（位置 + 走路 + 顺序三件事都只有房间能给），UI 最少"
+    },
+    {
+      "id": "B",
+      "name": "闪卡墙",
+      "concept": "一面墙上贴一格格卡片，站在墙前翻",
+      "signature": "满墙卡片网格",
+      "risk": "就是 Anki 放大，批评者点名的退化",
+      "verdict": "落选：没有走动、没有路线，违背「≤1 m 才可翻」"
+    },
+    {
+      "id": "C",
+      "name": "桌面宫殿模型",
+      "concept": "桌上一个微缩宫殿体积窗口（IN_VOLUME），卡放进小房间",
+      "signature": "可旋转的微缩宫殿",
+      "risk": "要建模宫殿；离开真实房间，身体记忆消失",
+      "verdict": "落选：换成骨架 A 后不是 MR，失去「自己房间」这个核心线索"
+    },
+    {
+      "id": "D",
+      "name": "引路精灵",
+      "concept": "一个 3D 小向导带你逐站走",
+      "signature": "会飞的引路角色",
+      "risk": "资源预算大、注意力被角色抢走",
+      "verdict": "落选：线就能引路，角色是装饰"
+    }
+  ],
+  "archetype": "D",
+  "container": {
+    "type": "STAGE_MIXED",
+    "space": "Full Space（Stage · Mixed，透视）。空间锚点与平面检测只能在 Full Space 用（SDK 6.1 spatial-anchor 文档 Limitations）",
+    "windowModel": "single_panel_with_popup：一块懒跟随的随身面板 + 按需弹出的牌组库 / 设置 / 确认（都是 Stage 内附着面板，不用浮层对话框）",
+    "notes": [
+      "沿用 Spatial Ruler 的平台结论：Stage 内 AlertDialog 不出内容、SnackbarHost 不可用 → 确认、提示都做成预建附着面板",
+      "LookAtComponent 只转画面不转指针面 → 卡片/面板朝向由 ECS 系统每帧写",
+      "隐藏的面板池要停用 holder，否则抢视线指针",
+      "不用 Toolbar / TabBar / Subwindow 附件"
+    ],
+    "permissions": [
+      "空间感知（平面检测 + 空间锚点）权限：具体权限名未确认，沿用 Spatial Ruler 的申请流程"
+    ],
+    "lifecycle": "进入：loadAnchor() 全量加载（空库 Error(-7) 当空集）→ 开平面检测。退后台/关闭：停平面检测、停 HMD 跟踪、取消协程、释放面板池；锚点与牌组数据已落盘，不需要额外保存。"
+  },
+  "referenceRepo": {
+    "primary": "C:/Users/Admin/Downloads/spatial-ruler（Spatial Ruler：Stage·Mixed、PlaneTracker、WorldTrackingManager 锚点持久化、注视点捏合落钉、准星、懒跟随面板、AttachmentPanel 读数牌、HeadTracker）",
+    "secondary": "GitHub kejing-dev/SpatialStickyNotes（卡片面板与本地保存的写法；外观不搬，不做黄色便签）"
+  },
+  "input": {
+    "modes": [
+      "眼手：注视 + 捏合（默认）",
+      "手柄：射线 + 扳机"
+    ],
+    "rule": "所有操作只有「指向 + 捏合/扳机」一种手势；没有拖拽、没有双手、没有打字。"
+  },
+  "spatialLayout": {
+    "units": "米",
+    "stage": "原点在脚下（Stage 坐标）",
+    "routeCluster": "同一宫殿任意两个位置的水平距离 ≤5.0 m；相邻两个位置间距 ≥0.80 m（给展开的格子留地方）",
+    "heightGate": "位置牌中心离地 0.80–1.80 m（下方要放得下格子、上方放得下标题）",
+    "maxCardsPerDeck": "每个宫殿 ≤20 个位置、≤120 张卡；每个位置或子位置 ≤8 个子级；最深 3 层",
+    "maxCardsPerApp": "房间里最多 300 个已布置的位置（锚点只给位置）",
+    "allowedSurfaces": [
+      "WALL",
+      "TABLE（桌沿 0.3 m 以内）",
+      "UNKNOWN（竖直面）"
+    ],
+    "blockedSurfaces": [
+      "FLOOR",
+      "CEILING",
+      "SOFA",
+      "CHAIR",
+      "DOOR（会开合，贴旁边的墙）",
+      "WINDOW（透明，不稳定）"
+    ],
+    "wakeDistance": {
+      "rule": "头到卡的水平距离（地面投影）≤1.00 m 醒来，>1.20 m 睡回（0.2 m 回差防抖）；高度已由落卡闸限定，不再计垂直差",
+      "oneAtATime": "同一时刻只展开一个位置：1 m 内注视的那个，没注视就最近的那个；其他位置保持光点",
+      "label": "1.0–3.0 m 的卡显示号码 + 距离（取最近 6 张）",
+      "far": ">3.0 m 只剩光点",
+      "tooFar": "捏合目标 >1.0 m 才出「再近 x m」",
+      "candidates": "复习：位置里有今日到期且本轮没评的卡才展开，格子里只有这些卡亮；顺序走一遍：只有下一个位置、格子里只有下一张",
+      "facing": "墙上的卡还要求头在卡正面一侧（dot(法线, 头 − 卡中心) > 0），隔墙站着不醒；桌上的卡只要求头在桌面上方",
+      "lock": "卡翻到背面后锁定，直到评完分或距离 >1.2 m 才换别的卡醒（视线扫到 0.5 m 外的邻卡不切换）"
+    },
+    "orientation": "墙上的卡贴墙竖挂；桌上的卡 30° 斜立，每帧只绕竖轴转向用户（yaw billboard），绕到桌对面也看得到正面",
+    "pocketPanel": "视野左下，距眼 0.75 m，向下 20°、向左 25°，懒跟随（转头超过 35° 才跟过去，0.4 s 缓动）",
+    "anchorReload": "启动全量 loadAnchor；用户走动超过 2 m 静默再加载一次；进入「找不到卡」前先静默重试 1 次"
+  },
+  "panels": [
+    {
+      "id": "pocket",
+      "name": "随身面板 Pocket Panel",
+      "surface": "Stage 内 Planar 附着面板，懒跟随，视野左下",
+      "distanceM": 0.75,
+      "sizeDp": {
+        "default": [
+          400,
+          240
+        ],
+        "min": [
+          400,
+          200
+        ],
+        "max": [
+          400,
+          300
+        ]
+      },
+      "physicalM": [
+        0.24,
+        0.14
+      ],
+      "material": "Material.Regular 玻璃（系统默认，根面不另画背景）",
+      "content": {
+        "home": "第 1 行：宫殿签（色点 + 宫殿名，点开宫殿库）· ⚙；中间：大号数字 + 两行说明（「9 张卡今日待复习」「在 4 个位置」）；下方：主按钮 + 至多两个图标键（📍 带没布置位置数角标、〰 顺序走一遍）",
+        "session": "第 1 行：模式 + 进度 + ✕；第 2 行：面包屑「中国朝代 › 先秦 › 周」（只在展开时出现）+ ↩ 返回上一层；中间：下一个位置与距离，或「这里 3 张到期」；布置时是下一个位置的预览（位置名 + 里面的卡名）"
+      },
+      "states": [
+        "home-empty",
+        "home-due",
+        "home-done",
+        "placing",
+        "reviewing",
+        "recalling",
+        "summary",
+        "message"
+      ],
+      "densityCap": "任何时候 ≤1 个主按钮 + 3 个图标键 + 2 行文字"
+    },
+    {
+      "id": "library",
+      "name": "宫殿库 Palace Library",
+      "surface": "附着面板，从随身面板上方弹出（spatial popup 语义），选完自动关",
+      "distanceM": 0.85,
+      "sizeDp": {
+        "default": [
+          480,
+          520
+        ],
+        "min": [
+          480,
+          400
+        ],
+        "max": [
+          480,
+          640
+        ]
+      },
+      "physicalM": [
+        0.29,
+        0.31
+      ],
+      "material": "Material.Regular 玻璃",
+      "content": "标题「宫殿」+ 📥 导入；列表行 72 dp：色点 + 宫殿名 +「5 个位置 · 17 张卡 · 今日 4」，当前带 ✓；预置 3 个",
+      "states": [
+        "list",
+        "import-files",
+        "import-empty",
+        "import-error"
+      ]
+    },
+    {
+      "id": "plaque",
+      "name": "位置牌与子卡 Locus Plaque & Child Cards",
+      "surface": "3D 实体；展开时标题 1 块 + 子卡最多 8 块附着面板（面板池 9 块），收起即回池",
+      "physicalM": [
+        0.22,
+        0.14
+      ],
+      "content": {
+        "locus": "位置牌：号码徽章 + 位置名（titleLarge）+ 右下「3 张 ▸」；单卡位置的位置牌就是那张卡（号码 + 正面）",
+        "child": "子卡 0.16 × 0.10 m：小号码 + 正面（titleMedium，≤2 行）；子位置是同尺寸的小位置牌：名字 +「▸ 2」",
+        "back": "翻面后：小字正面 + 答案 + ✕ 忘了 / ～ 模糊 / ✓ 记得（复习）或 ✓ 对 / ✕ 错（顺序走）",
+        "recall": "顺序走时位置牌先只显示号码 +「这里是哪里？」，子卡背面朝外只显示 ①②③"
+      },
+      "mount": "贴表面法线外 1.5 cm；顶部一颗 12 mm 黄铜图钉 + 接触阴影；墙上竖挂，桌上 30° 斜立并每帧 yaw 朝向用户",
+      "flip": "绕竖轴翻转 0.35 s"
+    },
+    {
+      "id": "settings",
+      "name": "设置 Settings",
+      "surface": "附着面板，从随身面板弹出",
+      "sizeDp": {
+        "default": [
+          420,
+          300
+        ]
+      },
+      "content": "语言：跟随系统 / 中文 / English（分段）；🔄 重新找卡；🗑 拆掉这个牌组的卡（确认后删本牌组所有卡的锚点，复习进度保留）；关于（版本、SM-2 说明）"
+    },
+    {
+      "id": "confirm",
+      "name": "确认条 Confirm Strip",
+      "surface": "随身面板内联，替换主区内容（不用浮层对话框）",
+      "content": "一句话 + [取消] [确定]；只用于：拆掉牌组的卡、删一张卡、布置中途结束"
+    }
+  ],
+  "entities3d": [
+    {
+      "id": "locusDot",
+      "what": "光点：直径 4 cm 自发光球 + 外圈进度环 + 到期数角标",
+      "count": "≤20",
+      "lod": ">3 m 光点；1–3 m 加「号码 位置名 · 距离」小签（签池 6 块）；≤1 m 展开"
+    },
+    {
+      "id": "locusPlaque",
+      "what": "位置牌 0.22 × 0.14 m 瓷白圆角板 + 宫殿色左边带 + 黄铜图钉",
+      "count": "≤20 个网格"
+    },
+    {
+      "id": "childCard",
+      "what": "子卡 / 子位置牌 0.16 × 0.10 m，展开时从位置牌下方滑出 0.25 s",
+      "count": "同时 ≤8"
+    },
+    {
+      "id": "thread",
+      "what": "记忆之线：位置之间 4 mm 发光管（下一段琥珀流动、走过的玉绿、未来的 25%）；格子内 2 mm 细线按 ①②③ 连",
+      "count": "≤19 段 + ≤7 段"
+    },
+    {
+      "id": "reticle",
+      "what": "落位置准星：6 cm 圆环，可贴琥珀、不可贴珊瑚红 ✕",
+      "count": "1"
+    },
+    {
+      "id": "nudge",
+      "what": "「再近 0.6 m」「先去 ③」「先翻 ②」小签",
+      "count": "1（复用）"
+    }
+  ],
+  "budget": {
+    "meshes": "≤20 位置牌 + 20 光点 + 8 子卡 + 26 段线 + 1 准星",
+    "panels": "随身 1 + 弹出 1 + 展开池 9 + 号码签池 6 = 同时 ≤17 块（只有展开的那一个位置用到 9 块）",
+    "textures": "无外部贴图",
+    "models": "无 GLB，全部代码生成"
+  },
+  "dataModel": {
+    "storage": "应用私有目录 JSON（palaces.json、nodes.json、loci.json）+ 系统锚点库；全离线",
+    "palace": "id、名字（中/英）、色、来源",
+    "node": "id、palaceId、parentId（null = 第 1 层位置）、order、kind（group / card）、title（group）、front ≤40 字 / back ≤60 字（card）、srs（card 才有）",
+    "locus": "nodeId（第 1 层）、anchorUuid、surfaceKind；子级没有锚点",
+    "srs": "SM-2 只作用于卡：忘了 q=1（本轮最后再来一次）/ 模糊 q=3 / 记得 q=5；dueDay 以凌晨 4 点分界；新布置的位置里的卡当天到期；评分后 3 s 可改",
+    "recallScoring": "顺序走一遍：卡判错 = 忘了；判对只在当天到期时算一次记得；位置顺序另计（走对的位置数），不进 SM-2",
+    "reviewOrder": "复习不强制顺序：线指向路线里下一个有到期卡的位置；格子里到期卡可任意顺序评",
+    "counting": "今日数只算能找到锚点的位置里的卡",
+    "deckRule": "路线顺序 = 布置顺序；格子顺序 = 导入顺序；删一个位置后后面的号码前移"
+  },
+  "import": {
+    "where": [
+      "📥 主入口「从文件选择…」：系统文件选择器（ACTION_OPEN_DOCUMENT；PICO OS 6 上是否可用：未确认）",
+      "兜底：应用目录 Android/data/io.embodit.memorypalace/files/import/ 里的文件自动列出（adb push 可放，QA 用这个）",
+      "未决（交门 B）：选择器不可用时，是否加「局域网网页上传」（会引入网络权限）"
+    ],
+    "formats": [
+      "CSV：两列「正面,背面」= 平铺；三列「分组,正面,背面」= 嵌套，分组用 / 分层，例「先秦/周」（最多 2 级分组，再多报错）",
+      "Anki「纯文本笔记」导出 .txt（勾选包含牌组名）：牌组名里的 :: 层级变成位置 / 子位置，例「中国朝代::先秦::周」；去 HTML，{{c1::答案}} 还原",
+      "TXT 行首缩进（每级 2 个空格或 1 个 Tab）：顶格 = 位置，缩进一级 = 子位置或卡，「正面 | 背面」或「正面<Tab>背面」是卡；适合演讲提纲",
+      "不支持 .apkg"
+    ],
+    "encoding": "先按 UTF-8 解；失败回退 GBK（Excel 中文 CSV 常见）",
+    "limits": "每文件 ≤500 行；正面 >40 字、背面 >60 字截断；超过 20 个位置或 120 张卡按位置整组拆成「名称 1/2」…；空行与缺一面的行跳过",
+    "split": "按第 1 层位置整组拆分，不把一个位置拆到两个宫殿",
+    "result": "成功：「导入 6 个位置、42 张卡（最深 3 层）」；失败：原因（编码 / 没有正反两列 / 分组超过 2 级 / 文件为空）"
+  },
+  "presets": [
+    {
+      "id": "dynasties",
+      "nameZh": "中国朝代",
+      "nameEn": "Chinese Dynasties",
+      "count": "5 个位置 · 17 张卡 · 3 层",
+      "structure": "① 先秦（夏、商、周 ▸ 西周 · 东周）② 秦汉（秦、西汉、东汉）③ 三国两晋南北朝（三国、晋、南北朝）④ 隋唐五代（隋、唐、五代十国）⑤ 宋元明清（宋、元、明、清）",
+      "sample": "正面「前 221 年」→ 背面「秦 · 统一六国」",
+      "why": "演示三层嵌套 + 顺序回忆，QA 默认用它"
+    },
+    {
+      "id": "elements20",
+      "nameZh": "前 20 号元素",
+      "nameEn": "First 20 Elements",
+      "count": "4 个位置 · 20 张卡",
+      "structure": "按周期：第 1 周期（2）、第 2 周期（8）、第 3 周期（8）、第 4 周期前两个（2）",
+      "sample": "「6 号」→「C 碳 Carbon」"
+    },
+    {
+      "id": "travel-en",
+      "nameZh": "旅行英语",
+      "nameEn": "Travel Phrases",
+      "count": "3 个位置 · 15 张卡",
+      "structure": "机场、酒店、餐厅 各 5 句",
+      "sample": "「我想退房」→「I'd like to check out.」"
+    }
+  ],
+  "states": [
+    {
+      "id": "S01",
+      "name": "扫描房间 Scanning",
+      "reach": "每次启动（找到 ≥1 个可贴表面即离开）",
+      "panel": "环视图标 +「慢慢看看四周」+「已找到 0 个表面」；15 s 还没有时加「靠近墙面、开灯试试」+ 次按钮「先进去」",
+      "qaCapture": "启动后 2 s 内截",
+      "exits": [
+        "当前宫殿没布置 → S02",
+        "有今日到期 → S09",
+        "今日已完成 → S21",
+        "有位置找不到 → 静默重试后 S22"
+      ]
+    },
+    {
+      "id": "S02",
+      "name": "主页·空宫殿 Home Empty",
+      "reach": "当前宫殿还没有位置贴进房间（首次默认预置「中国朝代」）",
+      "panel": "宫殿签「中国朝代」+ 大字「0 / 5」+「个位置已布置」+ 一行「17 张卡，最深 3 层」+ 主按钮「开始布置」；〰 置灰",
+      "qaCapture": "首次进入默认态",
+      "exits": [
+        "开始布置 → S06",
+        "宫殿签 → S03",
+        "⚙ → S24"
+      ]
+    },
+    {
+      "id": "S03",
+      "name": "宫殿库 Library",
+      "reach": "点宫殿签",
+      "panel": "宫殿列表：每行 名字 +「5 个位置 · 17 张卡 · 今日 4」，当前带 ✓；预置 3 个 + 已导入的",
+      "qaCapture": "截全貌",
+      "exits": [
+        "点一行 → 切换并关闭",
+        "📥 → S04",
+        "点外面 → 关闭"
+      ]
+    },
+    {
+      "id": "S04",
+      "name": "导入 Import",
+      "reach": "宫殿库 📥",
+      "panel": "「从文件选择…」+ import/ 目录文件列表；成功提示「导入 6 个位置、42 张卡（最深 3 层）」",
+      "qaCapture": "adb push 一份带分组列的 CSV 后截；点它后截成功提示",
+      "exits": [
+        "成功 → 新宫殿为当前 → S02",
+        "失败 → S05",
+        "返回 → S03"
+      ]
+    },
+    {
+      "id": "S05",
+      "name": "导入失败 Import Error",
+      "reach": "编码无法识别 / 没有正反两列 / 文件为空 / 分组超过 3 层",
+      "panel": "珊瑚色 ✕ + 一句原因 + [知道了]",
+      "qaCapture": "push 单列 bad.csv 后截",
+      "exits": [
+        "知道了 → S04"
+      ]
+    },
+    {
+      "id": "S06",
+      "name": "布置·瞄准 Placing",
+      "reach": "开始布置 / 📍",
+      "panel": "「布置 第 2 个位置」+ 预览：位置名「秦汉」+ 里面的卡「秦 · 西汉 · 东汉」（单卡位置显示正反面）+ ↶ + 完成",
+      "scene": "准星（琥珀）贴在注视的表面；已放的位置显示位置牌，线连到上一个",
+      "qaCapture": "注视墙面时截",
+      "exits": [
+        "捏合 → S08",
+        "不能贴 → S07",
+        "完成 → 已布置 ≥1 个去 S09，0 个回 S02",
+        "✕ → S25"
+      ]
+    },
+    {
+      "id": "S07",
+      "name": "布置·不能贴 Blocked",
+      "reach": "地板/天花板/沙发/门/窗、太低（<0.8 m）、太高（>1.8 m）、离任一位置 >5 m、离已有位置 <0.8 m",
+      "panel": "预览下方一行珊瑚色原因",
+      "scene": "准星变珊瑚红 ✕",
+      "qaCapture": "看地板时截",
+      "exits": [
+        "移开 → S06"
+      ]
+    },
+    {
+      "id": "S08",
+      "name": "布置·已钉 Placed",
+      "reach": "在可贴处捏合",
+      "scene": "图钉落下 + 位置牌出现（牌上：号码 + 位置名 + 「3 张」）+ 线从上一个拉过来；里面的卡不用一张张贴，展开时自动铺在位置牌周围",
+      "panel": "「2 / 5 个位置」，预览换成下一个",
+      "qaCapture": "放到第 3 个位置后截",
+      "exits": [
+        "继续 → S06",
+        "全部放完 → S09"
+      ]
+    },
+    {
+      "id": "S09",
+      "name": "主页·今日待复习 Home Due",
+      "reach": "有位置已布置且有到期卡",
+      "panel": "大字「9」+「张卡今日待复习」+「在 4 个位置」+ 主按钮「开始复习」+ 📍（角标：没布置的位置数）+ 〰；刚布置完多一行「绕着这些位置走走，让设备记住」",
+      "qaCapture": "布置完后截",
+      "exits": [
+        "开始复习 → S10",
+        "〰 → S17",
+        "📍 → S06"
+      ]
+    },
+    {
+      "id": "S10",
+      "name": "复习·远处 Review Far",
+      "reach": "开始复习",
+      "scene": "有到期卡的位置：琥珀光点 + 数字角标（里面几张到期）；没有的暗；下一段线全亮；1–3 m 的位置挂「号码 位置名 · 距离」",
+      "panel": "「复习 0 / 9」+「下一个位置：② 秦汉 · 2.3 m」+ 进度 + ✕",
+      "qaCapture": "站在房间中央截",
+      "exits": [
+        "走进位置 1 m → S12（单卡位置）或 S13（有子级）",
+        "捏 >1 m 的位置 → S11"
+      ]
+    },
+    {
+      "id": "S11",
+      "name": "复习·太远 Too Far",
+      "reach": "捏合的位置或卡水平距离 >1.0 m",
+      "scene": "抖 2 下 + 小签「再近 0.6 m」",
+      "qaCapture": "离位置 1.6 m 捏合后截",
+      "exits": [
+        "1.2 s 后 → S10"
+      ]
+    },
+    {
+      "id": "S12",
+      "name": "复习·单卡醒来 Card Awake",
+      "reach": "走进只有一张卡的位置 1 m 内",
+      "scene": "位置牌就是卡：号码 + 正面",
+      "panel": "「捏一下翻面」",
+      "qaCapture": "卡前 0.8 m 截",
+      "exits": [
+        "捏合 → S15",
+        "退到 >1.2 m → S10"
+      ]
+    },
+    {
+      "id": "S13",
+      "name": "位置展开 Locus Open",
+      "reach": "走进有子级的位置 1 m 内（复习和顺序走时自动展开）",
+      "scene": "位置牌升到上方变标题「② 秦汉」，里面的卡和子位置就地铺开在它下面（≤8 个，4×2 格，每张 0.16×0.10 m，按顺序连一条细线）；到期的卡亮、显示正面，没到期的暗；子位置是带角标的小位置牌「周 ▸ 2」",
+      "panel": "面包屑「中国朝代 › 秦汉」+「这里 3 张到期」",
+      "qaCapture": "在 ② 前 0.8 m 截：标题 + 3 张子卡 + 细线",
+      "exits": [
+        "捏到期的卡 → S15",
+        "捏子位置 → S14",
+        "退到 >1.2 m → 自动收起 → S10"
+      ]
+    },
+    {
+      "id": "S14",
+      "name": "进入子位置 Inside",
+      "reach": "在展开的位置里捏一个子位置",
+      "scene": "这一层的格子收起，子位置的卡在原地铺开（同一个地方，换一层）；标题变「① 先秦 › 周」",
+      "panel": "面包屑「中国朝代 › 先秦 › 周」+ ↩ 返回上一层",
+      "qaCapture": "在 ① 里捏「周」后截",
+      "exits": [
+        "↩ 或捏标题 → 回上一层 S13",
+        "这一层到期卡评完 → 1 s 后自动回上一层",
+        "退到 >1.2 m → 全部收起 → S10"
+      ]
+    },
+    {
+      "id": "S15",
+      "name": "翻面评分 Rate",
+      "reach": "捏一张醒着的到期卡",
+      "scene": "卡翻到背面：小字正面 + 答案 + ✕ 忘了 / ～ 模糊 / ✓ 记得",
+      "panel": "评分后 3 s 内「↶ 改评分」",
+      "qaCapture": "翻面后截，3 个评分键可见",
+      "exits": [
+        "评分 → 回所在层（S12/S13/S14）",
+        "最后一张评完 → 停 3 s → S16"
+      ]
+    },
+    {
+      "id": "S16",
+      "name": "复习·本轮完成 Review Done",
+      "reach": "到期卡全部评完（含忘了的第二次）",
+      "panel": "✓ +「记得 6 · 模糊 2 · 忘了 1」+「明天 4 张」+ [好]",
+      "qaCapture": "最后一张评完后截",
+      "exits": [
+        "好 → S21"
+      ]
+    },
+    {
+      "id": "S17",
+      "name": "顺序走·到位置 Recall Locus",
+      "reach": "〰 后走到下一个位置 1 m 内",
+      "scene": "位置牌只显示号码 +「这里是哪里？」；捏一下揭开位置名",
+      "panel": "「顺序走 · 第 2 个位置」+ 面包屑 + ✕",
+      "qaCapture": "走到 ② 时截；捏开后截",
+      "exits": [
+        "揭开 → 有子级 S18，单卡位置直接翻卡判对错",
+        "走近不是下一个的位置 → S19"
+      ]
+    },
+    {
+      "id": "S18",
+      "name": "顺序走·展开回忆 Recall Inside",
+      "reach": "位置名揭开后",
+      "scene": "里面的卡和子位置背面朝外按 ①②③ 铺开；只有下一张能捏开（正反面一起）→ ✓ 对 / ✕ 错；下一个是子位置时捏它进入，按顺序回忆完自动回来",
+      "panel": "「秦汉：1 / 3」",
+      "qaCapture": "翻开第 1 张后截",
+      "exits": [
+        "捏不是下一张 → S19",
+        "这个位置回忆完 → 线亮到下一个位置 → S17",
+        "最后一个位置完 → S20"
+      ]
+    },
+    {
+      "id": "S19",
+      "name": "顺序走·走错 Wrong Order",
+      "reach": "走到不是下一个的位置，或在格子里捏了不是下一张的卡",
+      "scene": "不醒 / 不翻 + 小签「先去 ③ →」或「先翻 ②」",
+      "qaCapture": "在 ⑤ 前截；在格子里捏 ③ 时截",
+      "exits": [
+        "回到正确顺序 → S17/S18"
+      ]
+    },
+    {
+      "id": "S20",
+      "name": "顺序走·结果 Recall Result",
+      "reach": "走完最后一个位置",
+      "panel": "「15 / 17 张对」+「位置顺序全对」或「位置 ③ ④ 走反了」+「错的 2 张已放进今日复习」+ [好]",
+      "qaCapture": "走完后截",
+      "exits": [
+        "好 → 主页"
+      ]
+    },
+    {
+      "id": "S21",
+      "name": "主页·今天完成 Home Done",
+      "reach": "已布置、今日无到期",
+      "panel": "✓「今天完成了」+「明天 4 张」；主按钮「顺序走一遍」+ 📍",
+      "qaCapture": "复习完后截",
+      "exits": [
+        "顺序走一遍 → S17",
+        "📍 → S06"
+      ]
+    },
+    {
+      "id": "S22",
+      "name": "找不到位置 Lost",
+      "reach": "静默重试后有位置的锚点找不到",
+      "panel": "「有 2 个位置找不到了（9 张卡）」+「再找找」+「重新贴这 2 个」",
+      "qaCapture": "debug dropAnchors 2 后重启截",
+      "exits": [
+        "找到 → 主页",
+        "重新贴 → S06（只放丢的位置，进度保留）"
+      ]
+    },
+    {
+      "id": "S23",
+      "name": "无空间权限 No Permission",
+      "reach": "空间感知权限被拒",
+      "panel": "「需要空间权限，才能把宫殿放进你的房间」+ [授权]",
+      "qaCapture": "撤权后启动截",
+      "exits": [
+        "授权 → S01"
+      ]
+    },
+    {
+      "id": "S24",
+      "name": "设置 Settings",
+      "reach": "⚙",
+      "panel": "语言分段 + 🔄 重新找位置 + 🗑 拆掉这个宫殿 + 关于",
+      "qaCapture": "截设置；切 English 后截主页",
+      "exits": [
+        "拆掉 → S25"
+      ]
+    },
+    {
+      "id": "S25",
+      "name": "确认 Confirm",
+      "reach": "拆掉宫殿 / 删一个位置 / 布置中途 ✕",
+      "panel": "随身面板内联一句话 + [取消] [确定]",
+      "qaCapture": "截确认条",
+      "exits": [
+        "确定 → S02 或上一态",
+        "取消 → 上一态"
+      ]
+    },
+    {
+      "id": "S26",
+      "name": "布置·删一个位置 Edit Locus",
+      "reach": "布置时捏已放的位置牌",
+      "scene": "位置牌下方小条：🗑 删这个位置（里面的卡跟着回到「没布置」）",
+      "qaCapture": "布置时捏 ② 后截",
+      "exits": [
+        "删 → S25",
+        "点别处 → S06"
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "id": "T1",
+      "name": "落位置",
+      "from": "S06",
+      "to": "S08",
+      "trigger": "注视可贴处捏合 → createAnchor → 位置牌 + 线（里面的子级不用贴）",
+      "confirm": false,
+      "verify": "模拟器可验证"
+    },
+    {
+      "id": "T2",
+      "name": "撤销",
+      "from": "S08",
+      "to": "S06",
+      "trigger": "↶ 删最后一个位置的锚点",
+      "confirm": false,
+      "verify": "模拟器可验证"
+    },
+    {
+      "id": "T3",
+      "name": "走近展开 / 走开收起",
+      "from": "S10",
+      "to": "S12|S13",
+      "trigger": "ECS ProximitySystem：位置水平距离 ≤1.0 m 展开（一次一个）、>1.2 m 收起",
+      "confirm": false,
+      "verify": "模拟器可验证（移动相机）"
+    },
+    {
+      "id": "T4",
+      "name": "太远捏合",
+      "from": "S10",
+      "to": "S11",
+      "trigger": "目标 >1.0 m → 抖动 + 距离签，不展开不翻",
+      "confirm": false,
+      "verify": "模拟器可验证"
+    },
+    {
+      "id": "T5",
+      "name": "进入子位置",
+      "from": "S13",
+      "to": "S14",
+      "trigger": "捏子位置牌 → 格子换成下一层，面包屑 +1",
+      "confirm": false,
+      "verify": "模拟器可验证"
+    },
+    {
+      "id": "T6",
+      "name": "返回上一层",
+      "from": "S14",
+      "to": "S13",
+      "trigger": "↩ / 捏标题 / 这一层评完 1 s 后自动",
+      "confirm": false,
+      "verify": "模拟器可验证"
+    },
+    {
+      "id": "T7",
+      "name": "翻面",
+      "from": "S12|S13|S14",
+      "to": "S15",
+      "trigger": "捏醒着的到期卡",
+      "confirm": false,
+      "verify": "模拟器可验证"
+    },
+    {
+      "id": "T8",
+      "name": "评分 / 改评分",
+      "from": "S15",
+      "to": "所在层|S16",
+      "trigger": "SM-2 写盘；3 s 内可撤销",
+      "confirm": false,
+      "verify": "模拟器可验证"
+    },
+    {
+      "id": "T9",
+      "name": "顺序走一遍",
+      "from": "S17",
+      "to": "S18|S19|S20",
+      "trigger": "位置按路线顺序、格子按 ①②③ 顺序；子位置进入后回忆完自动返回",
+      "confirm": false,
+      "verify": "模拟器可验证"
+    },
+    {
+      "id": "T10",
+      "name": "切宫殿 / 导入",
+      "from": "S03|S04",
+      "to": "S02|S05",
+      "trigger": "点行 / 选文件（UTF-8→GBK，分组列或 Anki :: 建树）",
+      "confirm": false,
+      "verify": "模拟器可验证（adb push）"
+    },
+    {
+      "id": "T11",
+      "name": "持久化",
+      "from": "*",
+      "to": "S01 分流",
+      "trigger": "force-stop 后 loadAnchor 恢复所有位置；树与 SRS 从 JSON 恢复",
+      "confirm": false,
+      "verify": "模拟器可验证；真机漂移真机依赖"
+    },
+    {
+      "id": "T12",
+      "name": "拆掉宫殿 / 删位置",
+      "from": "S24|S26",
+      "to": "S25",
+      "trigger": "removeAnchor",
+      "confirm": true,
+      "verify": "模拟器可验证"
+    },
+    {
+      "id": "T13",
+      "name": "切语言",
+      "from": "S24",
+      "to": "S24",
+      "trigger": "分段控件",
+      "confirm": false,
+      "verify": "模拟器可验证"
+    }
+  ],
+  "acceptance": {
+    "lockedByCritic": [
+      "「≤1 m 才可翻」：位置的展开、子位置的进入、卡的翻面都要求水平距离 ≤1.0 m；>1.0 m 捏合一律不展开不翻（S11）；>1.2 m 自动收起",
+      "「路线顺序回忆」：顺序走一遍时只有下一个位置能展开，格子里只有下一张能翻（S17–S19），结果分别报位置顺序与卡"
+    ],
+    "mustPass": [
+      "预置「中国朝代」5 个位置贴进模拟器房间，走到 ① 能展开，捏「周」能进入第 3 层并返回",
+      "force-stop 后 5 个位置全部回来，树结构与今日计数不变",
+      "复习一轮后 dueDay 写盘；3 s 改评分生效",
+      "导入三列分组 CSV 与 Anki :: 牌组名都能建出嵌套；分组 3 级报错",
+      "低于 0.8 m / 高于 1.8 m / 地板 / 沙发贴不上；两个位置 <0.8 m 贴不上",
+      "中英切换后面板与面包屑无溢出",
+      "全 UI 无 Material / Material3"
+    ]
+  },
+  "palette": {
+    "theme": "SpatialUI vibrant + 根面 Material.Regular 玻璃",
+    "colorScheme": {
+      "fillPrimary": "inherit",
+      "fillSecondary": "inherit",
+      "fillTertiary": "inherit",
+      "fillLight": "inherit",
+      "labelPrimary": "inherit",
+      "labelPrimaryLight": "inherit",
+      "labelSecondary": "inherit",
+      "labelTertiary": "inherit",
+      "labelQuaternary": "inherit",
+      "lightenHover": "inherit",
+      "lightenPressed": "inherit",
+      "dividerLine": "inherit",
+      "interaction": "#FFB648",
+      "passable": "#5FD3A4",
+      "alert": "#FF9A3D",
+      "error": "#FF6B5E"
+    },
+    "brandTokens": {
+      "lanternAmber": "#FFB648",
+      "jade": "#5FD3A4",
+      "coral": "#FF6B5E",
+      "mistBlue": "#8FB8FF",
+      "porcelain": "#F4F0E8",
+      "plaqueInk": "#1F2430",
+      "brassPin": "#C9A35A",
+      "threadFuture": "rgba(255,182,72,.25)",
+      "deckColors": [
+        "#FFB648",
+        "#8FB8FF",
+        "#5FD3A4",
+        "#E58FD0",
+        "#F2D16B",
+        "#7FD6E8"
+      ]
+    },
+    "semantic": [
+      {
+        "status": "今日待复习 / 下一站",
+        "color": "lanternAmber",
+        "cue": "光点呼吸 + 线段流动"
+      },
+      {
+        "status": "记得 / 回忆对",
+        "color": "jade",
+        "cue": "✓"
+      },
+      {
+        "status": "模糊",
+        "color": "mistBlue",
+        "cue": "～"
+      },
+      {
+        "status": "忘了 / 回忆错 / 不能贴",
+        "color": "coral",
+        "cue": "✕"
+      },
+      {
+        "status": "未到期 / 未来段",
+        "color": "labelTertiary / threadFuture",
+        "cue": "暗点 / 淡线"
+      }
+    ],
+    "plaque": "卡面瓷白 porcelain + 墨字 plaqueInk + 左边 6 mm 牌组色带（与 2D 玻璃面板区分：卡是实物，面板是玻璃）"
+  },
+  "typography": {
+    "font": "Noto Sans + Noto Sans SC（应用内打包）",
+    "roles": {
+      "displayLarge": "40/54 Bold：圆环里的待复习数",
+      "titleLarge": "20/26 SemiBold：卡面文字（超长降到 titleMedium 16/20）",
+      "titleMedium": "16/20 SemiBold：面板标题、牌组名",
+      "bodyMedium": "14/18 Medium：提示、距离",
+      "labelMedium": "12/16 SemiBold：站号徽章、芯片"
+    },
+    "rule": "中文 ≤17 sp 一律 Medium；卡面字高在 1 m 处 ≥0.9°"
+  },
+  "spatialUiMap": {
+    "deckChip": "sui-chip（宫殿签）",
+    "settingsKey": "sui-icon-button size=min",
+    "primary": "sui-button size=regular container=interaction",
+    "modeKeys": "sui-icon-button ×2（📍 布置、〰 回忆）",
+    "sessionBar": "sui-text + sui-icon-button（↶ ✓ ✕）",
+    "libraryPopup": "sui-spatial-popup + sui-list-item（宫殿库）",
+    "importRow": "sui-list-item（文件名 + 行数）",
+    "languageSeg": "sui-segment-control",
+    "settingsRows": "sui-list-item",
+    "confirmStrip": "sui-button ×2（Stage 内不用 sui-alert-dialog）",
+    "ratingKeys": "sui-button size=small ×3（卡背面）",
+    "recallKeys": "sui-button size=small ×2",
+    "stationBadge": "sui-number-badge",
+    "progress": "sui-linear-progress（导入中）",
+    "custom": "位置牌、子卡格子、光点、记忆之线、准星、距离签是 3D 领域内容（ECS 实体），不是控件",
+    "dueNumber": "sui-text displayLarge + sui-text bodyMedium",
+    "undoRating": "sui-button size=small（↶ 改评分，3 s 后消失）",
+    "editBar": "sui-button size=small（🗑 删这张）",
+    "breadcrumb": "sui-text labelLarge（面包屑）+ sui-icon-button（↩ 返回上一层）"
+  },
+  "tags": {
+    "contentType": "应用",
+    "contentTags": [
+      "学习",
+      "记忆",
+      "记忆宫殿",
+      "闪卡",
+      "间隔重复"
+    ],
+    "featureTags": [
+      "Stage·Mixed 透视",
+      "平面检测",
+      "空间锚点持久化",
+      "距离触发展开",
+      "就地嵌套展开",
+      "ECS 路线渲染",
+      "注视捏合",
+      "手柄射线",
+      "CSV/Anki 分层导入",
+      "全离线本地保存",
+      "中英双语"
+    ]
+  },
+  "i18n": {
+    "languages": [
+      "zh-CN",
+      "en"
+    ],
+    "default": "跟随系统",
+    "note": "UI 双语；卡片内容按牌组原文，不翻译；3 个预置牌组各有中英名"
+  },
+  "offline": {
+    "network": "无网络权限",
+    "apiKeys": "无",
+    "chinaAvailability": "全部可用"
+  },
+  "verification": {
+    "emulatorCanVerify": [
+      "平面检测 + 落位置",
+      "线与撤销",
+      "走近展开 / 走开收起（移动相机）",
+      "进入子位置与返回",
+      "太远捏合拒绝",
+      "翻面评分 + SM-2 写盘",
+      "顺序走一遍两级顺序与走错",
+      "锚点跨 force-stop 恢复",
+      "分层导入成功/失败",
+      "中英切换",
+      "删位置 / 拆宫殿"
+    ],
+    "deviceOnly": [
+      "锚点真机漂移与跨日重定位",
+      "真实走路时 1.0/1.2 m 回差的手感",
+      "1 m 处卡面可读性",
+      "手部追踪捏合",
+      "系统文件选择器在 PICO OS 6 是否可用"
+    ],
+    "debugHooks": "debug 广播：seed（把预置 5 个位置贴到固定位姿）、dueAll、dropAnchors n、open <位置号> [子位置名]、state <id>（QA 按状态名截图）"
+  },
+  "reviewNotes": [
+    "2026-10-20 评审第 1 轮（reviewer 子 agent，对照 Anki / SpatialFlashcards / Quest Memory Palace）：revise，4 P1 + 6 P2 + 2 P3，全部采纳或部分采纳：",
+    "R1-1 P1 高度可达：加落卡高度闸 0.7–1.9 m，删 SOFA/CHAIR，醒卡改用水平距离 ≤1.0 m",
+    "R1-2 P1 醒卡冲突：间距改 ≥0.5 m；同时只醒一张（注视的或最近的）；1 m 内的其他卡捏了就换它醒，不出「太远」",
+    "R1-3 P1 超 30 张：导入时按 30 张自动拆牌组；正面 ≤40 字、背面 ≤60 字截断",
+    "R1-4 P1 S01 死路：≥1 个表面就放行并按数据分流；15 s 加提示 +「先进去」",
+    "R1-5 P2 回忆与复习共用一个 SM-2（错 = 忘了；对只在当天到期时算记得）；捏开正反面一起显示；砍掉计时与最佳成绩；复习不强制顺序",
+    "R1-6 P2 SM-2 细则：dueDay 以凌晨 4 点分界；忘了只重来一次；3 s 改评分",
+    "R1-7 P2 布置预览同时显示正反面（放一张 = 读一遍）",
+    "R1-8 P2 找不到的卡不计入今日与会话，顺序走时跳过并注明",
+    "R1-9 P2 导入：系统选择器为主入口、import/ 目录兜底；UTF-8→GBK 回退；cloze 还原；不支持 .apkg；「局域网网页上传」列为门 B 未决项",
+    "R1-10 P2 5 m 改为任意两张卡最大跨度；走动 >2 m 静默再加载，进 S19 前静默重试",
+    "R1-11 P3 桌上的卡 yaw billboard；DOOR / WINDOW 不可贴",
+    "R1-12 P3 傻瓜化：去掉「绕一圈」确认页（改成 S09 一行提示）；界面只用「牌组 / 卡 / 走一遍」三个词；删一张代替「移动」；与主按钮重复的图标键隐藏；语言分段保留（中英双语是产线硬要求）",
+    "2026-10-20 评审第 2 轮：pass（4 条 P1 已解决，无新 P1）；2 P2 + 4 P3 已顺手改：",
+    "R2-1 P2 醒卡候选集 = 今日到期且未评（顺序走 = 下一张）；翻面后锁定到评完或 >1.2 m",
+    "R2-2 P2 墙上的卡加朝向半空间条件，隔墙不醒",
+    "R2-3 P2 300 张上限 = 已上墙的卡；导入总数不限",
+    "R2-4 P3 布置「完成」按已上墙数分流（0 张回 S02）；S09 的 📍 带未上墙数角标",
+    "R2-5 P3 改评分窗口挂在 S10/S14 面板上，最后一张评完先停 3 s",
+    "R2-6 P3 提示文案统一词表：「绕着这些卡走走」",
+    "2026-10-21 门 B 改：用户要嵌套宫殿结构，按 changes[] 重出 v2；体量仍是单线 1–2 天（只多一个树数据模型、一个格子布局和面包屑），未另开评审轮",
+    "2026-10-21 合并：评论自动回复在 04:14 先发了一版快速嵌套（宫殿 = 真实房间 › 厅 › 位 › 子位，卡翻面后手动展开）。v2 没整版保留它：每层先翻再展开多一步，「走进房间自动认出宫殿」SDK 未确认；保留了它的可展开树（样稿 §2）和 TXT 行首缩进导入"
+  ],
+  "terminology": {
+    "rule": "界面用四个词：宫殿、位置、卡、走一遍；动作只有「展开 / 返回」两个新词（展开基本是自动的）。",
+    "map": {
+      "牌组": "宫殿",
+      "站 / locus": "位置（第 1 层）",
+      "子位置": "位置里的位置（第 2 层）",
+      "路线回忆": "顺序走一遍"
+    }
+  },
+  "nesting": {
+    "why": "经典记忆宫殿是「宫殿 → 房间 → 位置点 → 记忆物」的层级。v1 每个位置只挂一张卡，等于把 Anki 平铺到墙上；v2 让位置能装下一组东西、还能再往里走一层，路线顺序管大结构，格子顺序管细节。",
+    "tree": "宫殿（一个牌组 = 房间里一条路线）→ 位置（第 1 层，贴在真实表面，有锚点）→ 子位置（第 2 层，可选）→ 卡（叶子，有正反面）。卡可以出现在第 1、2、3 层；子位置只能在第 2 层，所以最深 3 层。",
+    "limits": {
+      "lociPerPalace": 20,
+      "childrenPerNode": 8,
+      "maxDepth": 3,
+      "cardsPerPalace": 120,
+      "anchoredLociPerApp": 300
+    },
+    "anchors": "只有第 1 层位置要锚点；里面的卡和子位置按位置牌的局部坐标自动排布，不用一张张贴，不占锚点。",
+    "layout": "展开时位置牌升到上方 0.12 m 变成标题，子级在它下方铺成 4 列 × 最多 2 行的格子（每格 0.16 × 0.10 m，间距 0.03 m，整体约 0.73 × 0.23 m），贴在同一个表面上（桌上的位置斜 30° 朝向用户）；按顺序用一条 2 mm 细线连起来。",
+    "open": "复习和顺序走一遍时，走进位置 1 m 内自动展开（一次只展开一个位置，其他位置变暗点）；退到 1.2 m 外自动收起。",
+    "enter": "在展开的格子里捏一个子位置 = 进入：这一层格子收起，子位置的卡在同一个地方铺开；标题变成面包屑「先秦 › 周」。↩ 或捏标题返回上一层；这一层到期卡评完 1 s 后自动返回。",
+    "oneMeterRule": "≤1 m 才可翻在嵌套里照样成立：展开、进入、翻面都要求头到那个位置（或那张子卡）的水平距离 ≤1.0 m；格子离位置牌最远 0.37 m，所以站在位置前就能够到整组，站远了整组一起收起。",
+    "routeOrderRule": "路线顺序回忆在嵌套里分两级：先按路线顺序走位置（只有下一个位置能展开），位置揭开名字后，里面按 ①②③ 顺序回忆（只有下一张能翻；下一个是子位置就进入、按它的顺序回忆完自动回来）。结果分别报「位置顺序」和「卡对了几张」。",
+    "flatDecks": "没分组的牌组：≤20 张时每张卡自己一个位置（和 v1 一样）；>20 张时每 6 张连续的卡自动并成一个位置，位置名用第 1 张的正面。"
+  },
+  "changes": [
+    "2026-10-21 门 B「改」（用户在样稿评论：memory 需要能展开、嵌套结构才是真正的宫殿结构）：",
+    "信息架构改为 宫殿 → 位置（锚点）→ 子位置 → 卡，最深 3 层；每层 ≤8 个子级；每宫殿 ≤20 个位置、≤120 张卡",
+    "走进位置 1 m 自动就地展开成格子；捏子位置进入下一层、↩ 返回；走开 1.2 m 自动收起",
+    "≤1 m 才可翻、路线顺序回忆两条验收在嵌套里的成立方式写进 nesting 与 acceptance",
+    "只有第 1 层位置占锚点，子级按局部坐标排布：布置步数从「每张卡一次」降到「每个位置一次」",
+    "导入支持分组列（a/b）与 Anki :: 层级；平铺 >20 张自动每 6 张并成一个位置",
+    "预置牌组改成有层级：中国朝代 5 位置 3 层、元素按周期 4 位置、旅行英语按场景 3 位置",
+    "状态 S01–S23 → S01–S26：新增 S13 位置展开、S14 进入子位置、S17 顺序走·到位置、S18 顺序走·展开回忆；界面词改为 宫殿 / 位置 / 卡 / 走一遍",
+    "位置间距 0.5 → 0.8 m、可贴高度 0.7–1.9 → 0.8–1.8 m（给格子和标题留地方）"
+  ]
+}
