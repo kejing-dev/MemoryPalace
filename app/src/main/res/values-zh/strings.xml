@@ -3,9 +3,9 @@
     <string name="app_name">记忆宫殿</string>
     <string name="lang_code">zh</string>
 
-    <string name="scan_title">慢慢看看四周</string>
-    <string name="scan_found">已找到 %d 个表面</string>
-    <string name="scan_hint">靠近墙面、开灯试试</string>
+    <string name="scan_title">正在找回你的位置…</string>
+    <string name="scan_found">不用扫描房间：位置是空间锚点</string>
+    <string name="scan_hint">有点慢：看看四周，或者先进去</string>
     <string name="scan_enter">先进去</string>
     <string name="perm_title">需要空间权限</string>
     <string name="perm_body">才能把宫殿放进你的房间</string>
@@ -38,6 +38,7 @@
     <string name="place_title">布置 第 %d 个位置</string>
     <string name="place_done">完成</string>
     <string name="place_pinned">%s 钉好了 ✓</string>
+    <string name="place_hint">看向要放的地方捏一下，就钉在前方约 1.2 m 处</string>
     <string name="place_failed">没钉住，再捏一下</string>
     <string name="place_inside">里面：%s</string>
     <string name="edit_hint">想换地方就删了重贴；里面的卡回到「没布置」</string>

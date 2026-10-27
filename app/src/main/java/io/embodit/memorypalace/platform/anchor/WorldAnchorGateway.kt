@@ -3,6 +3,7 @@ package io.embodit.memorypalace.platform.anchor
 import com.pico.spatial.core.lifecycle.Cancellable
 import com.pico.spatial.core.math.EulerAngles
 import com.pico.spatial.core.math.Vector3
+import com.pico.spatial.sense.base.AnchorUpdate
 import com.pico.spatial.sense.world.WorldAnchor
 import com.pico.spatial.sense.world.WorldTrackingManager
 import com.pico.spatial.sense.world.WorldTrackingResult
@@ -33,13 +34,16 @@ class WorldAnchorGateway : AnchorGateway {
 
     private var subscription: Cancellable? = null
 
+    /** Called (on the tracking thread) when world tracking moves an anchor after a recalibration. */
+    @Volatile var onUpdated: ((AnchorRecord) -> Unit)? = null
+
     /**
      * Subscribes to anchor updates: world tracking answers "provider is not ready" (-6) to a creation
      * until someone listens (seen on the emulator; Spatial Ruler subscribes at scene start too).
      */
     fun start() {
         if (subscription != null) return
-        subscription = runCatching { WorldTrackingManager.subscribeAnchorUpdate { } }.onFailure { PalaceLog.e("ANCHOR subscribe failed: $it", it) }.getOrNull()
+        subscription = runCatching { WorldTrackingManager.subscribeAnchorUpdate { u -> if (u.event == AnchorUpdate.Event.UPDATED) runCatching { onUpdated?.invoke(u.anchor.toRecord()) } } }.onFailure { PalaceLog.e("ANCHOR subscribe failed: $it", it) }.getOrNull()
     }
 
     fun stop() {

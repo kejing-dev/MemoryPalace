@@ -4,9 +4,9 @@
     <string name="lang_code">en</string>
 
     <!-- S01 / S23 -->
-    <string name="scan_title">Look around slowly</string>
-    <string name="scan_found">%d surfaces found</string>
-    <string name="scan_hint">Move closer to a wall, or turn on a light</string>
+    <string name="scan_title">Finding your loci…</string>
+    <string name="scan_found">No room scan needed: loci are spatial anchors</string>
+    <string name="scan_hint">Taking a while: look around, or go in now</string>
     <string name="scan_enter">Go in anyway</string>
     <string name="perm_title">Spatial access needed</string>
     <string name="perm_body">to put the palace into your room</string>
@@ -41,6 +41,7 @@
     <string name="place_title">Locus %d</string>
     <string name="place_done">Done</string>
     <string name="place_pinned">%s pinned ✓</string>
+    <string name="place_hint">Look where it goes and pinch: it pins there, about 1.2 m ahead</string>
     <string name="place_failed">Didn\'t stick, pinch again</string>
     <string name="place_inside">Inside: %s</string>
     <string name="edit_hint">Delete it and pin again to move it; its cards go back to \"not placed\"</string>

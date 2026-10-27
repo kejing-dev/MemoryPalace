@@ -265,7 +265,7 @@ internal object DebugCommands {
             }
             "S06", "S07" -> seed(vm, scene, null, count = 1) {
                 vm.onEvent(PalaceEvent.StartPlacing)
-                if (id == "S07") vm.debugBlock(BlockReason.SURFACE)
+                if (id == "S07") vm.debugBlock(BlockReason.TOO_CLOSE)
                 done(vm, id)
             }
             "S08" -> seed(vm, scene, null, count = 2) {

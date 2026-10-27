@@ -183,7 +183,7 @@ class PalaceViewModel(
         if (e !is PalaceEvent.AimChanged) PalaceLog.i("UI ${e.javaClass.simpleName}${detail(e)}")
         when (e) {
             PalaceEvent.SceneReady -> sceneReady()
-            is PalaceEvent.SurfacesChanged -> surfacesChanged(e.usable, e.error)
+            is PalaceEvent.AnchorMoved -> anchorMoved(e.anchorId, e.position, e.rotation)
             is PalaceEvent.AimChanged -> if (debugBlock == null && block != e.block) block = e.block else return
             is PalaceEvent.PlaceTapped -> placeTapped(e.spot, e.block)
             is PalaceEvent.LocusTapped -> locusTapped(e.nodeId, e.distance)
@@ -293,7 +293,7 @@ class PalaceViewModel(
             is PalaceEvent.Judge -> " right=${e.right}"
             is PalaceEvent.WikiQuery -> " text=${e.text}"
             is PalaceEvent.WikiSearch -> " text=${e.text}"
-            is PalaceEvent.SurfacesChanged -> " usable=${e.usable}"
+            is PalaceEvent.AnchorMoved -> " id=${e.anchorId.take(8)} at=${PalaceLog.pos(e.position)}"
             else -> ""
         }
 
@@ -301,7 +301,8 @@ class PalaceViewModel(
 
     private fun sceneReady() {
         sceneReady = true
-        if (phase == Phase.STARTING) phase = if (PalaceGraph.planes.startError != null) Phase.NO_PERMISSION else Phase.SCANNING
+        // v0.2.2: no plane detection; S01 only lasts until the anchors are loaded
+        if (phase == Phase.STARTING) phase = Phase.SCANNING
         scanJob?.cancel()
         scanJob =
             viewModelScope.launch {
@@ -311,14 +312,14 @@ class PalaceViewModel(
                     publish()
                 }
             }
-        if (phase == Phase.SCANNING && surfaces > 0) phase = Phase.READY
         loadAnchors(retry = true)
     }
 
-    private fun surfacesChanged(usable: Int, error: String?) {
-        surfaces = usable
-        if (error != null && phase != Phase.READY) phase = Phase.NO_PERMISSION
-        else if (phase == Phase.SCANNING && usable > 0) phase = Phase.READY
+    /** World tracking recalibrated and moved an anchor: its locus follows. */
+    private fun anchorMoved(id: String, position: Vec3, rotation: Quat4) {
+        val poses = anchorPoses ?: return
+        if (id !in poses) return
+        anchorPoses = poses + (id to (position to rotation))
     }
 
     /** Full load of the anchor store (design `anchorReload`): a missing anchor is retried once after 2 s. */
@@ -336,6 +337,7 @@ class PalaceViewModel(
                     }
                     lost = missing
                     lostDismissed = false
+                    if (phase == Phase.SCANNING) phase = Phase.READY
                     // anchors no locus points to (a crash between "create" and "save", an old install) are this
                     // app's own: let them go, they count towards the room's limit
                     val used = lib.loci.map { it.anchorId }.toSet()
@@ -351,6 +353,7 @@ class PalaceViewModel(
                     } else {
                         if (anchorPoses == null) anchorPoses = emptyMap()
                         lost = lib.loci.map { it.nodeId }.toSet()
+                        if (phase == Phase.SCANNING) phase = Phase.READY
                     }
                 }
             }

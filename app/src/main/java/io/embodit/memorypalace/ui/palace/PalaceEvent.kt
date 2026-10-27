@@ -2,19 +2,22 @@ package io.embodit.memorypalace.ui.palace
 
 import io.embodit.memorypalace.data.LanguagePref
 import io.embodit.memorypalace.domain.BlockReason
+import io.embodit.memorypalace.domain.Quat4
 import io.embodit.memorypalace.domain.Spot
+import io.embodit.memorypalace.domain.Vec3
 
 /** Everything that can happen: panel controls, scene taps and the per-frame rules of the scene. */
 sealed interface PalaceEvent {
     // ---- scene
     data object SceneReady : PalaceEvent
 
-    data class SurfacesChanged(val usable: Int, val error: String?) : PalaceEvent
+    /** World tracking moved an anchor (coordinate recalibration, `AnchorUpdate.Event.UPDATED`). */
+    data class AnchorMoved(val anchorId: String, val position: Vec3, val rotation: Quat4) : PalaceEvent
 
     /** The reticle moved onto a spot that can / cannot take a locus (null block: it can). */
     data class AimChanged(val block: BlockReason?) : PalaceEvent
 
-    /** Pinch on a surface while placing. */
+    /** Pinch in the room while placing (v0.2.2: anywhere, the locus floats along the pinch direction). */
     data class PlaceTapped(val spot: Spot?, val block: BlockReason?) : PalaceEvent
 
     /** Pinch on a locus (dot or plaque); [distance] is horizontal, head to locus. */

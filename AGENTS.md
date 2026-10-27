@@ -10,7 +10,16 @@ the default first palace, and Song Ci; public-domain originals, palace = volume,
 card = couplet) and a palace built from a Wikipedia article (outside mainland China; one locus per section,
 fill-in cards, CC BY-SA 4.0 credit on every card's back). The only network use; built palaces stay offline.
 
-Design package (binding): `../spatial-app-factory/apps/memory-palace/design-package.json`, **v0.2** (states
+v0.2.2 (2026-10-23, device feedback "use spatial anchors, no plane detection"): plane
+tracking is no longer started. A locus is a free spatial anchor 1.2 m along the pinch direction (the gaze, or
+the ray through the far backstop shell), its height kept 0.8 m below to 0.3 m above the eyes; the plaque stands
+upright facing back to where it was placed from (`PlaceRules.free` / `checkFree`: gap 0.8 m, span 5 m, room
+limit). S01 now only lasts until the anchors are loaded. Anchor `UPDATED` events move their locus
+(`PalaceEvent.AnchorMoved`). Content is unchanged from v0.2.1: more content (user images / 3D models / typed
+text, a bigger default library) is the v0.3 design; a content draft lies in
+`../spatial-app-factory/apps/memory-palace/build/v0.2.2/content-draft/`.
+
+Design package (binding): `../spatial-app-factory/apps/memory-palace/design-package.v0.2.json` (design-package.json is the v0.3 draft since 2026-10-23), **v0.2** (states
 S01 - S31, `nesting`, `contentSources`, `spatialLayout`, `panels`, `entities3d`, `palette`). Approved sample:
 `../spatial-app-factory/apps/memory-palace/sample.html`. Skeleton D, built from Furniture Fit (`../furniture-fit`),
 itself ported from Spatial Ruler (`../spatial-ruler`): panel pool, Stage root, plane colliders, world anchors,
@@ -27,7 +36,7 @@ app/src/main/java/io/embodit/memorypalace/
     Presets.kt            bundled palaces + poetry packs (generated word for word from design `contentSources.poetryPack`)
     WikiBuilder.kt        Parsoid HTML -> draft palace (lead + sections -> loci, cloze cards, limits), search JSON, palace
     Importer.kt           CSV / Anki plain text (:: decks, cloze) / indented TXT, UTF-8 -> GBK, limits, splitting
-    Rules.kt              PlaceRules (surfaces, 0.8 - 1.8 m, gap 0.8 m, span 5 m, table edge), Wake (1.0 / 1.2 m, facing, gaze)
+    Rules.kt              PlaceRules (v0.2.2 free spots: 1.2 m ahead, gap 0.8 m, span 5 m; old surface rules kept, unused), Wake (1.0 / 1.2 m, facing, gaze)
     Sessions.kt           Review (forgot comes back once), RecallSteps + Recall (route order, grid order, sub-loci)
   data/Stores.kt          AnchorGateway, Library, FilePalaceStore (palaces.json, nodes.json, loci.json), LibraryCodec
   platform/               PalaceGraph, PalaceLog, HeadTracker, PlaneTracker, WorldAnchorGateway, PickerActivity,
@@ -79,14 +88,14 @@ QA tips (emulator, 2026-10-22):
   state needs stands 0.85 m straight ahead, facing you). It takes 2 - 4 s; `qa_shot.sh` waits for
   `CMD state done <id>`. The wake rule then opens the locus by itself (`WAKE open`), exactly as walking up would.
 - Panels lag 3 - 10 s behind a change on the emulator: `qa_shot.sh` waits 10 s.
-- The emulator room: floor plane at y = 0.40, head at y = 1.65, a wall 2 m ahead (WALL plane z ≈ -4.3 further
-  back, the bed in between). `place` pinches on what the head ray hits (looking straight ahead hits the bed:
-  "can't pin here"); turn the camera to a wall with `tools/harness/emu.sh drag ... -Button right`.
+- The emulator room: head at y = 1.65. v0.2.2: `place` pins 1.2 m along the head ray wherever it looks; a second
+  locus needs ≥ 0.8 m, so pinch well to the side (or turn the camera with `tools/harness/emu.sh drag ... -Button right`).
 - The emulator locale is en-US: copy is English unless `ui lang_zh`.
 - Debug pinches (`cell`, `title`) measure the distance from the ViewModel's state: the emulator idles at ~1 fps
   and the scene's copy of the state can lag a debug jump by a second.
-- Real input works: `tools/harness/emu.sh click 1080 1050` while placing pins a locus on the wall above the bed
-  (`TAP surface target=plane:WALL`, `LOCUS placed`); `click 1500 2000` hits the floor (`block=SURFACE`).
+- Real input works (v0.2.2): `tools/harness/emu.sh click 1080 1050` while placing pins a locus 1.2 m ahead
+  (`TAP room target=backstop:nz`, `LOCUS placed`); the same pinch again is `block=TOO_CLOSE`; `click 2130 1150`
+  is far enough to the right for the next one. force-stop + launch: both come back (`ANCHOR load missing=0`).
   X Y are console-screenshot pixels (2160 wide on this AVD).
 - Launcher check: HOME key twice (the first opens "Back to Home", confirm it; the second shows the app row).
 - No emulator walking: wake / sleep is exercised by re-pinning loci at a distance (`seed a=k`) or turning and
@@ -142,14 +151,13 @@ Live Wikipedia (no fixture): `cmd wikiFixture off`, `ui source_wiki`, `ui wiki_l
 
 ## Runtime facts (emulator, SDK 6.1.9, 2026-10-22)
 
-- 57 planes arrive within a second on a warm emulator; 29 of them can take a locus (WALL / vertical UNKNOWN /
-  TABLE). Floor plane y = 0.40, head y = 1.65.
+- (before v0.2.2) 57 planes arrived within a second on a warm emulator; planes are not tracked any more.
 - `WorldTrackingManager.loadAnchor` and `createAnchor` both answer -6 "provider is not ready" until the app
   has subscribed to anchor updates and for a moment after the Stage opens: `WorldAnchorGateway` retries -6.
 - Wikipedia (v0.2): `Accept-Language: zh-cn` on the REST HTML gives `content-language: zh-Hans-CN` (Simplified);
   the revision id is in the root `about` attribute. Parsoid puts JSON with ">" inside `data-mw` attributes:
   tags are matched quote-aware (`WikiBuilder.ATTRS`). The User-Agent has no contact yet (Wikimedia asks for one;
   to be filled in before release).
-- No runtime permission exists for planes / anchors on SDK 6.1 (docs list none): S23 shows only when plane
-  tracking fails to start.
+- No runtime permission exists for planes / anchors on SDK 6.1 (docs list none): S23 shows only when anchor
+  loading keeps answering -5 after the retries.
 - Spatial Ruler's panel-pool rules apply (see `ui/palace/scene/PanelRig.kt`).

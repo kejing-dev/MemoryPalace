@@ -196,7 +196,6 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         for (i in 0 until PanelIds.CELLS) rig.world(PanelIds.cell(i), PanelSizes.CELL_W, PanelSizes.CELL_H, 1f)
         for (i in 0 until PanelIds.LABELS) rig.world(PanelIds.label(i), PanelSizes.LABEL_W, PanelSizes.LABEL_H, 1f)
         head.start()
-        PalaceGraph.anchors.start()
         ActiveScene.scene = this
         attached = true
         bindPanels(attachments)
@@ -227,7 +226,6 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         val colliders = PlaneColliders(root)
         colliders.buildBackstop()
         this.colliders = colliders
-        colliders.sync(planes.all)
         yield()
         repeat(MAX_THREADS) { i -> threads += Box(root, meshes.cube, m.threadFuture, "thread$i").also { it.show(false) } }
         repeat(PanelIds.CELLS - 1) { i -> gridThreads += Box(root, meshes.cube, m.amber, "gridThread$i").also { it.show(false) } }
@@ -242,35 +240,25 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         sink(PalaceEvent.SceneReady)
     }
 
+    /**
+     * v0.2.2 (device feedback): no plane detection any more, a locus is a free spatial anchor. Sensing is the
+     * anchor subscription only; an anchor that world tracking moves after a recalibration is passed on.
+     */
     private fun startSensing() {
-        planes.start {
-            colliders?.sync(planes.all)
-            surfacesChanged()
-        }
-    }
-
-    private fun surfacesChanged() {
-        val all = planes.all
-        floorY = all.filter { it.semantic == "FLOOR" && it.isHorizontal }.minOfOrNull { it.centroid.y }
-        val n = all.count { PlaceRules.usable(it) }
-        if (n != usable) {
-            usable = n
-            sink(PalaceEvent.SurfacesChanged(n, planes.startError))
-        }
+        PalaceGraph.anchors.onUpdated = { r -> main.post { if (attached) sink(PalaceEvent.AnchorMoved(r.id, r.position, r.rotation)) } }
+        PalaceGraph.anchors.start()
     }
 
     /** Sensing restarts (S23 "allow"). */
     fun restartSensing() {
-        planes.stop()
+        PalaceGraph.anchors.stop()
         startSensing()
-        surfacesChanged()
     }
 
     /** The Stage went to the background: stop every tracker (design `container.lifecycle`). */
     fun pause() {
         if (paused || !attached) return
         paused = true
-        planes.stop()
         head.stop()
         PalaceLog.i("SCENE paused")
     }
@@ -301,8 +289,8 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         buildJob?.cancel()
         scope?.cancel()
         scope = null
-        planes.stop()
         head.stop()
+        PalaceGraph.anchors.onUpdated = null
         PalaceGraph.anchors.stop()
         panelShown.clear()
         labels.clear()
@@ -603,13 +591,15 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         }
     }
 
-    /** The reticle while placing (design `entities3d.reticle`): the head ray onto the planes, amber or coral ✕. */
+    /**
+     * The reticle while placing (design `entities3d.reticle`), v0.2.2: floating 1.2 m along the gaze, where a
+     * pinch would pin the locus; amber, or coral ✕ when it is too close to / too far from the other loci.
+     */
     private fun aim() {
         if (!ui.aiming) return
         val r = reticle ?: return
-        val hit = raycast(planes.all, pose.position, pose.forward)
-        val block = evaluate(hit?.point, hit?.normal, hit?.plane).second
-        if (hit == null) r.hide() else r.draw(hit.point + hit.normal * 0.004f, hit.normal, block == null, (hit.distance * RETICLE_K).coerceIn(0.6f, 2.5f))
+        val (spot, block) = evaluate(pose.forward)
+        r.draw(spot.position, spot.normal, block == null, PlaceRules.FREE_DISTANCE * RETICLE_K)
         if (!aimSent || block != lastAim) {
             aimSent = true
             lastAim = block
@@ -617,12 +607,10 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         }
     }
 
-    private fun evaluate(point: Vec3?, normal: Vec3?, plane: PlaneSurface?): Pair<Spot?, BlockReason?> {
-        if (point == null || normal == null || plane == null) return null to BlockReason.NO_SURFACE
-        val spot = PlaceRules.spot(point, normal, plane)
-        val others = foundLoci().map { it.position }
-        val floor = floorY ?: (pose.position.y - DEFAULT_EYE_M)
-        return spot to PlaceRules.check(spot, plane, floor, others, ui.loci.size)
+    /** The free spot along [dir] from the eyes and why it cannot take a locus (null: it can). */
+    private fun evaluate(dir: Vec3): Pair<Spot, BlockReason?> {
+        val spot = PlaceRules.free(pose.position, dir)
+        return spot to PlaceRules.checkFree(spot, foundLoci().map { it.position }, ui.loci.size)
     }
 
     // =========================================================================================
@@ -737,17 +725,11 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
                 sink(PalaceEvent.LocusTapped(locusId, d))
             }
             target != null && colliders?.isRoom(target) == true -> {
-                val plane = colliders?.planeOf(target)
-                PalaceLog.i("TAP surface target=$name stage=${PalaceLog.pos(stage)}")
+                PalaceLog.i("TAP room target=$name stage=${PalaceLog.pos(stage)}")
                 if (ui.mode != Mode.PLACING) return
-                if (plane == null || stage == null) {
-                    sink(PalaceEvent.PlaceTapped(null, BlockReason.NO_SURFACE))
-                    return
-                }
-                // back onto the plane, normal towards the viewer
-                val nrm = plane.normal.let { if (it.dot(pose.position - stage) < 0f) -it else it }
-                val onPlane = stage - nrm * (stage - plane.vertices[0]).dot(nrm)
-                val (spot, block) = evaluate(onPlane, nrm, plane)
+                // the pinch hit the far shell: the locus floats 1.2 m along that direction (the gaze, or the ray)
+                val dir = stage?.let { it - pose.position }?.takeIf { it.length > 0.1f } ?: pose.forward
+                val (spot, block) = evaluate(dir)
                 sink(PalaceEvent.PlaceTapped(spot, block))
             }
             else -> PalaceLog.i("TAP other target=$name stage=${PalaceLog.pos(stage)}")
@@ -774,10 +756,7 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
     fun floor(): Float = floorY ?: (pose.position.y - DEFAULT_EYE_M)
 
     /** Debug: what a pinch on the head ray would pin (S07 / S08 hooks). */
-    fun debugAim(): Pair<Spot?, BlockReason?> {
-        val hit = raycast(planes.all, pose.position, pose.forward)
-        return evaluate(hit?.point, hit?.normal, hit?.plane)
-    }
+    fun debugAim(): Pair<Spot?, BlockReason?> = evaluate(pose.forward)
 
     fun poseLine(): String =
         String.format(Locale.US, "POSE hmd pos=%s %s fwd=%s valid=%s support=%s frames=%d floor=%s", PalaceLog.pos(pose.position), PalaceLog.quat(pose.rotation), PalaceLog.pos(pose.forward), hasHead, head.supportState(), frames, floorY)

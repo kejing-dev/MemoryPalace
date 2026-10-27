@@ -159,6 +159,28 @@ class PalaceRulesTest {
         assertEquals(BlockReason.LIMIT, PlaceRules.check(ok, wall, 0f, emptyList(), 300))
     }
 
+    /** v0.2.2: no surface needed; the locus floats 1.2 m along the pinch, its height kept near the eyes. */
+    @Test
+    fun freePlacingRules() {
+        val eye = Vec3(0f, 1.6f, 0f)
+        val ahead = PlaceRules.free(eye, Vec3(0f, 0f, -1f))
+        assertEquals(-1.2f, ahead.position.z, 1e-4f)
+        assertEquals(1.6f, ahead.position.y, 1e-4f)
+        // the plaque faces back to where it was placed from
+        assertEquals(1f, ahead.normal.z, 1e-4f)
+        // a pinch at the floor stays 0.8 m below the eyes, one at the ceiling 0.3 m above
+        assertEquals(0.8f, PlaceRules.free(eye, Vec3(0f, -1f, -0.2f)).position.y, 1e-4f)
+        assertEquals(1.9f, PlaceRules.free(eye, Vec3(0f, 1f, -0.2f)).position.y, 1e-4f)
+        assertNull(PlaceRules.checkFree(ahead, emptyList(), 0))
+        assertEquals(BlockReason.TOO_CLOSE, PlaceRules.checkFree(ahead, listOf(Vec3(0.5f, 1.6f, -1.2f)), 0))
+        assertEquals(BlockReason.TOO_FAR_FROM_ROUTE, PlaceRules.checkFree(ahead, listOf(Vec3(0f, 1.6f, 4.5f)), 0))
+        assertEquals(BlockReason.LIMIT, PlaceRules.checkFree(ahead, emptyList(), Limits.ANCHORED_LOCI_PER_APP))
+        // a free locus wakes from its front, as a wall locus does
+        val l = Locus("a", "p", "x", 0, ahead.position, ahead.normal, ahead.surface)
+        assertTrue(Wake.facing(l, Vec3(0f, 1.6f, -0.4f)))
+        assertFalse(Wake.facing(l, Vec3(0f, 1.6f, -2.0f)))
+    }
+
     @Test
     fun raycastHitsTheWallAhead() {
         val hit = raycast(listOf(wall, floorPlane), Vec3(0f, 1.6f, 0f), Vec3(0f, 0f, -1f))!!

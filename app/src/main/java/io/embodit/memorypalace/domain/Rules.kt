@@ -39,6 +39,34 @@ object PlaceRules {
         return if (kind == SurfaceKind.TABLE) Spot(point + Vec3.UP * TABLE_LIFT, Vec3.UP, kind) else Spot(point + normal * WALL_OFFSET, normal, kind)
     }
 
+    /** v0.2.2: how far ahead along the gaze a locus is pinned when it is placed freely (no surface). */
+    const val FREE_DISTANCE = 1.2f
+
+    /** Below / above the eyes a free locus may sit (a gaze at the floor or the ceiling is clamped). */
+    const val FREE_BELOW_EYE = 0.8f
+    const val FREE_ABOVE_EYE = 0.3f
+
+    /**
+     * v0.2.2 (device feedback: "use spatial anchors, no plane detection"): a locus is an anchor in the air,
+     * [FREE_DISTANCE] along [dir] from the eyes, its height kept between [FREE_BELOW_EYE] below and
+     * [FREE_ABOVE_EYE] above the eyes; its plaque stands upright facing back towards where it was placed from.
+     */
+    fun free(head: Vec3, dir: Vec3): Spot {
+        val d = dir.normalized().let { if (it.length < 0.5f) Vec3.AHEAD else it }
+        val flat = Vec3(d.x, 0f, d.z).let { if (it.length < 1e-3f) Vec3.AHEAD else it.normalized() }
+        val p = head + d * FREE_DISTANCE
+        val y = p.y.coerceIn(head.y - FREE_BELOW_EYE, head.y + FREE_ABOVE_EYE)
+        return Spot(Vec3(p.x, y, p.z), -flat, SurfaceKind.WALL)
+    }
+
+    /** The rules a free locus still follows: the room's anchor budget, 0.8 m from the others, a 5 m route. */
+    fun checkFree(spot: Spot, others: List<Vec3>, appTotal: Int): BlockReason? {
+        if (appTotal >= Limits.ANCHORED_LOCI_PER_APP) return BlockReason.LIMIT
+        if (others.any { it.distanceTo(spot.position) < MIN_GAP }) return BlockReason.TOO_CLOSE
+        if (others.any { flatDistance(it, spot.position) > MAX_SPAN }) return BlockReason.TOO_FAR_FROM_ROUTE
+        return null
+    }
+
     /** Null when [spot] may take a locus; [others] are the placed loci of the same palace. */
     fun check(spot: Spot?, plane: PlaneSurface?, floorY: Float, others: List<Vec3>, appTotal: Int): BlockReason? {
         if (plane == null) return BlockReason.NO_SURFACE

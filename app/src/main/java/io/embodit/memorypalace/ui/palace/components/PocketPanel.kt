@@ -243,6 +243,7 @@ private fun ColumnScope.Placing(state: PalaceUiState, onEvent: (PalaceEvent) -> 
         val b = p.block
         if (state.nudge?.kind == NudgeKind.PLACE_FAILED) Line(rs(R.string.place_failed), PalaceColors.Coral)
         else if (b != null && p.flash == null && p.edit == null) Line(blockText(b), if (b == BlockReason.NO_SURFACE) ink2 else PalaceColors.Coral)
+        else if (p.flash == null && p.edit == null) Line(rs(R.string.place_hint), ink2, maxLines = 2)
     }
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Key("undo_place", R.drawable.ic_undo, rs(R.string.cd_undo), { onEvent(PalaceEvent.UndoPlace) }, enabled = p.canUndo && !p.busy)
@@ -341,7 +342,7 @@ private fun ColumnScope.Scanning(state: PalaceUiState, onEvent: (PalaceEvent) ->
         Icon(painter = painterResource(R.drawable.ic_look_around), contentDescription = null, modifier = Modifier.size(48.dp), tint = ink)
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Line(rs(R.string.scan_title), ink, PalaceType.card)
-            Line(rs(R.string.scan_found, state.surfaces))
+            Line(rs(R.string.scan_found), maxLines = 2)
             if (state.scanSlow) Line(rs(R.string.scan_hint), PalaceColors.Amber, maxLines = 2)
         }
     }

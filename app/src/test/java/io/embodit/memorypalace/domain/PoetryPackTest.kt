@@ -42,7 +42,7 @@ class PoetryPackTest {
     /** Word for word against the design package (when the factory checkout is next to the project). */
     @Test
     fun textMatchesTheDesignPackage() {
-        val f = File("../../spatial-app-factory/apps/memory-palace/design-package.json")
+        val f = File("../../spatial-app-factory/apps/memory-palace/design-package.v0.2.json").takeIf { it.exists() } ?: File("../../spatial-app-factory/apps/memory-palace/design-package.json")
         assumeTrue(f.exists())
         val packs = JSONObject(f.readText()).getJSONObject("contentSources").getJSONObject("poetryPack").getJSONArray("packs")
         var checked = 0
