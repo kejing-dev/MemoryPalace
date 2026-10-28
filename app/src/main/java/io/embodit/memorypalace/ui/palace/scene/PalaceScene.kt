@@ -478,7 +478,7 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
     private fun threadEnd(l: LocusUi): Vec3 {
         val open = ui.open
         if (open == null || open.locusId != l.nodeId || open.cells.isEmpty()) return l.position
-        return l.position + frameOf(l).up * ((TITLE_RISE_M + PanelSizes.TITLE_H * DP_M / 2f) * scaleOf(l))
+        return l.position + frameOf(l).up * ((titleRise() + PanelSizes.TITLE_H * DP_M / 2f) * scaleOf(l))
     }
 
     /** Title + grid of the open locus (design `nesting.layout`), with the slide-out and the flip. */
@@ -504,7 +504,7 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         val up = f.up
         val right = f.right
         val grid = open.cells.isNotEmpty()
-        val titleAt = l.position + (if (grid) up * (TITLE_RISE_M * k) else Vec3.ZERO)
+        val titleAt = l.position + (if (grid) up * (titleRise() * k) else Vec3.ZERO)
         val slide = ((now - openStartMs) / SLIDE_MS).coerceIn(0f, 1f).let { 1f - (1f - it) * (1f - it) }
         val title = rig[PanelIds.TITLE]
         title?.orient(rot)
@@ -546,6 +546,12 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
             if (a == null || b == null || slide < 1f) gridThreads[i].show(false) else gridThreads[i].rod(a + n * 0.001f, b + n * 0.001f, GRID_THREAD_M * k)
         }
     }
+
+    /**
+     * How far the title stands above the locus centre; QA q5-1: when a 3D object floats over a card of the open
+     * level, the title moves up to leave it a gap above its card (neither over the card text nor in the plaque).
+     */
+    private fun titleRise(): Float = if (ui.models.any { !it.beside && it.cell >= 0 }) TITLE_RISE_M + ModelViews.ON_CARD_M + 0.03f else TITLE_RISE_M
 
     private var openCenters: List<Vec3> = emptyList()
     private var openFrame: PanelFacing? = null
@@ -612,8 +618,8 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
             if (m.beside) besideSpot(l, f) else {
                 val c = openCenters.getOrNull(m.cell) ?: return@frame null
                 val of = openFrame ?: f
-                // over the top edge of its card and well in front of the grid, so it never sinks into the title plaque
-                ModelSpot(c + of.up * ((PanelSizes.CELL_H * DP_M / 2f + 0.02f) * openScale) + of.normal * ((ModelViews.ON_CARD_M / 2f + 0.06f) * openScale), of.yaw, ModelViews.ON_CARD_M * openScale)
+                // standing on the top edge of its card, in the gap titleRise() leaves under the title
+                ModelSpot(c + of.up * ((PanelSizes.CELL_H * DP_M / 2f + ModelViews.ON_CARD_M / 2f + 0.01f) * openScale) + of.normal * (0.02f * openScale), of.yaw, ModelViews.ON_CARD_M * openScale)
             }
         }
         // S37 preview: the picked model stands beside the locus being edited until it is added
@@ -720,7 +726,7 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         val at: Vec3? =
             if (l != null) {
                 val f = frameOf(l)
-                val lift = if (ui.open?.locusId == l.nodeId && ui.open?.cells?.isNotEmpty() == true) (TITLE_RISE_M + PanelSizes.TITLE_H * DP_M / 2f + 0.04f) * scaleOf(l) else PLAQUE_H / 2f + (PanelSizes.LABEL_ROW_H + 30f) * DP_M
+                val lift = if (ui.open?.locusId == l.nodeId && ui.open?.cells?.isNotEmpty() == true) (titleRise() + PanelSizes.TITLE_H * DP_M / 2f + 0.04f) * scaleOf(l) else PLAQUE_H / 2f + (PanelSizes.LABEL_ROW_H + 30f) * DP_M
                 l.position + f.up * lift + f.normal * 0.05f
             } else {
                 val idx = ui.open?.cells?.indexOfFirst { it.nodeId == n.targetId } ?: -1
