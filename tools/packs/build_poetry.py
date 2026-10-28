@@ -189,7 +189,7 @@ def build_tang():
 # 全宋词 files of the same repo keep them, so for each ci we align against the
 # best match by the same author and re-insert the missing characters only
 # (replacements/deletions are left as the 三百首 reading).
-SONG_AUTHOR_FIX = {"赵令": "赵令畤", "张": "张鎡"}
+SONG_AUTHOR_FIX = {"赵令": "赵令畤", "张": "张鎡", "韩": "韩疁"}
 SONG_RHYTHMIC_FIX = {("周邦彦", "大"): "大酺"}   # 酺 dropped in the source title
 SONG_SKIP_INSERT = {("李清照", "声声慢", "忺")}   # use the 通行本 reading 堪 instead
 SONG_PHRASE_FIX = {

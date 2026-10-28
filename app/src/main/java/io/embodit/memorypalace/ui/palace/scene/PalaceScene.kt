@@ -586,7 +586,8 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
             // the plate's name row sits just above the plaque; the peek card hangs below that row, over the plaque
             val lift = PLAQUE_H / 2f + 0.02f
             slot?.orient(f.rotation)
-            slot?.show(l.position + f.up * (lift + (PanelSizes.LABEL_ROW_H - PanelSizes.LABEL_H / 2f) * DP_M * k) + f.normal * 0.03f, k, k)
+            // QA q4-1: the plate (and the peek card it fades in) stands in front of the lantern dot (0.03 m + 0.02 m radius)
+            slot?.show(l.position + f.up * (lift + (PanelSizes.LABEL_ROW_H - PanelSizes.LABEL_H / 2f) * DP_M * k) + f.normal * PLATE_OUT_M, k, k)
         }
     }
 
@@ -611,7 +612,8 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
             if (m.beside) besideSpot(l, f) else {
                 val c = openCenters.getOrNull(m.cell) ?: return@frame null
                 val of = openFrame ?: f
-                ModelSpot(c + of.up * ((PanelSizes.CELL_H * DP_M / 2f + 0.07f) * openScale) + of.normal * (0.04f * openScale), of.yaw, ModelViews.ON_CARD_M * openScale)
+                // over the top edge of its card and well in front of the grid, so it never sinks into the title plaque
+                ModelSpot(c + of.up * ((PanelSizes.CELL_H * DP_M / 2f + 0.02f) * openScale) + of.normal * ((ModelViews.ON_CARD_M / 2f + 0.06f) * openScale), of.yaw, ModelViews.ON_CARD_M * openScale)
             }
         }
         // S37 preview: the picked model stands beside the locus being edited until it is added
@@ -854,6 +856,7 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         const val LABEL_K = 0.6f
         const val PLAQUE_W = 0.22f
         const val PLAQUE_H = 0.14f
+        const val PLATE_OUT_M = 0.075f
         const val STICK_DEAD = 0.15f
         const val PUSH_M_PER_S = 0.8f
         const val TURN_DEG_PER_S = 120f

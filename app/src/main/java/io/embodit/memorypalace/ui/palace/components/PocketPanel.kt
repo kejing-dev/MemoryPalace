@@ -176,7 +176,7 @@ private fun ColumnScope.Home(state: PalaceUiState, onEvent: (PalaceEvent) -> Uni
                 Line(rs(R.string.home_cards, state.cardTotal, state.depth))
             }
             HomeKind.DUE -> {
-                Big(state.dueToday.toString(), rs(R.string.home_due_cards), PalaceColors.Amber)
+                Big(state.dueToday.toString(), rs(R.string.home_due_cards))  // ink, not amber: amber on glass is ~1.3:1 (QA v0.3 D13)
                 Line(if (state.justPlaced) rs(R.string.home_walk_hint) else rs(R.string.home_due_loci, state.dueLoci), maxLines = 2)
             }
             HomeKind.DONE -> {
