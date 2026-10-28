@@ -24,6 +24,19 @@ data class WikiSource(val lang: String, val title: String, val url: String, val 
 
 enum class NodeKind { GROUP, CARD }
 
+enum class MediaKind { IMAGE, MODEL }
+
+/** Why a picked file cannot become an item (S38). */
+enum class MediaError { FORMAT_MODEL, FORMAT_IMAGE, TOO_BIG_IMAGE, TOO_BIG_MODEL, LOAD_FAILED, FULL, TOO_MANY_MODELS, NO_PICKER }
+
+/**
+ * v0.3 user content (design `userContent`): an image card or a 3D memory object. [file] is relative to the
+ * app's files dir (`palaces/<palace>/media/<content hash>.<ext>`); [name] is the picked file's own name.
+ * A model [beside] its locus stands next to the plaque and is always seen; otherwise it floats over its
+ * card while the locus is open. [yawDeg] is the stick's turn about the vertical axis.
+ */
+data class Media(val kind: MediaKind, val file: String, val name: String, val beside: Boolean = false, val yawDeg: Float = 0f)
+
 /** One SM-2 record (design `dataModel.srs`); [dueDay] null = new, due on the day its locus is placed. */
 data class Srs(val ef: Float = 2.5f, val interval: Int = 0, val reps: Int = 0, val dueDay: Int? = null, val lapses: Int = 0) {
     fun isDue(today: Int): Boolean = dueDay == null || dueDay <= today
@@ -43,6 +56,8 @@ data class Node(
     val srs: Srs? = null,
     /** A poem's author (poetry packs: the sub-locus is a poem). */
     val author: String = "",
+    /** v0.3: an image card / a 3D memory object (cards only). */
+    val media: Media? = null,
 ) {
     val isCard: Boolean
         get() = kind == NodeKind.CARD
@@ -125,6 +140,13 @@ object Limits {
     const val FRONT_MAX = 40
     const val BACK_MAX = 60
     const val FLAT_GROUP = 6
+
+    /** v0.3 (design `userContent.limits`). */
+    const val MODELS_PER_PALACE = 12
+    const val IMAGES_PER_PALACE = 120
+    const val IMAGE_MAX_BYTES = 15L * 1024 * 1024
+    const val MODEL_MAX_BYTES = 25L * 1024 * 1024
+    const val IMAGE_EDGE_PX = 1024
 }
 
 /** The day index with the 4 a.m. boundary (design `dataModel.srs`). */

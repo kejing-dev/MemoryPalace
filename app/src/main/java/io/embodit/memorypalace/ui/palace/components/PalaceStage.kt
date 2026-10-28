@@ -38,7 +38,7 @@ internal fun PalaceStage(state: PalaceUiState, scene: PalaceScene, onEvent: (Pal
                 },
         attachments = {
             AttachmentPanel(PanelIds.POCKET) {
-                PoolPanel(PanelIds.POCKET, scene, pressed = { scene.onPocketPointer() }) { inView -> PocketPanel(state = if (inView) state else null, targetDm = scene.targetDecimetres.intValue, onEvent = onEvent) }
+                PoolPanel(PanelIds.POCKET, scene, pressed = { scene.onPocketPointer() }) { inView -> PocketPanel(state = if (inView) state else null, onEvent = onEvent) }
             }
             AttachmentPanel(PanelIds.LIBRARY) {
                 PoolPanel(PanelIds.LIBRARY, scene, pressed = { scene.onPocketPointer() }) { inView -> LibraryPanel(state = if (inView) state else null, onEvent = onEvent) }
@@ -58,7 +58,7 @@ internal fun PalaceStage(state: PalaceUiState, scene: PalaceScene, onEvent: (Pal
             }
             for (i in 0 until PanelIds.LABELS) {
                 AttachmentPanel(PanelIds.label(i)) {
-                    PoolPanel(PanelIds.label(i), scene) { inView -> LabelPanel(label = if (inView) scene.labels[i] else null) }
+                    PoolPanel(PanelIds.label(i), scene) { inView -> LabelPanel(label = if (inView) scene.labels[i] else null, onTap = { scene.labelTapped(it) }) }
                 }
             }
             AttachmentPanel(PanelIds.NUDGE) {

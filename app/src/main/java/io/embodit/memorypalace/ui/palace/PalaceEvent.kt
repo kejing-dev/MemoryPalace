@@ -20,18 +20,24 @@ sealed interface PalaceEvent {
     /** Pinch in the room while placing (v0.2.2: anywhere, the locus floats along the pinch direction). */
     data class PlaceTapped(val spot: Spot?, val block: BlockReason?) : PalaceEvent
 
-    /** Pinch on a locus (dot or plaque); [distance] is horizontal, head to locus. */
+    /**
+     * Pinch / trigger on a locus (plaque, dot or its label), at any distance (v0.3 design `interactionModel`);
+     * [distance] is only logged.
+     */
     data class LocusTapped(val nodeId: String, val distance: Float) : PalaceEvent
-
-    /** The wake rule picked another open locus (null: none). */
-    data class LocusWoke(val nodeId: String?) : PalaceEvent
-
-    /** Recall: walked up to a locus that is not next (null: away again). */
-    data class NearOther(val nodeId: String?) : PalaceEvent
 
     data class CellTapped(val nodeId: String, val distance: Float) : PalaceEvent
 
     data class TitleTapped(val distance: Float) : PalaceEvent
+
+    /** v0.3: a 3D memory object was pinched (placing: it becomes the one the stick turns). */
+    data class ModelTapped(val nodeId: String) : PalaceEvent
+
+    /** v0.3: the stick turned the selected model; sent when the stick comes back to rest. */
+    data class ModelTurned(val nodeId: String, val yawDeg: Float) : PalaceEvent
+
+    /** v0.3 S37: the picked model loaded (or not) and was measured. */
+    data class ModelLoaded(val file: String, val ok: Boolean, val heavy: Boolean) : PalaceEvent
 
     // ---- pocket panel
     data object ChipClicked : PalaceEvent
@@ -126,4 +132,44 @@ sealed interface PalaceEvent {
     data object WikiRetry : PalaceEvent
 
     data object GoPoetry : PalaceEvent
+
+    // ---- v0.3 content library (S32), blank palace (S33), add an item (S34 - S38)
+    data object SourceLibrary : PalaceEvent
+
+    data object SourceBlank : PalaceEvent
+
+    data class LibraryCategory(val category: String) : PalaceEvent
+
+    data class LibraryExpand(val collectionId: String) : PalaceEvent
+
+    data class AddVolume(val volumeId: String) : PalaceEvent
+
+    data class AddGenerated(val collectionId: String) : PalaceEvent
+
+    /** S33 「开始布置」 with the name typed into [PalaceViewModel.nameInput]. */
+    data object BlankCreate : PalaceEvent
+
+    /** The 「＋」 cell of an open locus while placing. */
+    data object AddItem : PalaceEvent
+
+    data object AddText : PalaceEvent
+
+    data object AddImage : PalaceEvent
+
+    data object AddModel : PalaceEvent
+
+    data object AddGroup : PalaceEvent
+
+    data class AddBeside(val beside: Boolean) : PalaceEvent
+
+    /** Done on S35 / S36 / S37 / the sub-locus or rename name. */
+    data object AddDone : PalaceEvent
+
+    /** Edit bar: 「改名」 / 「放一个记忆物」. */
+    data object RenameLocus : PalaceEvent
+
+    data object PlaceObject : PalaceEvent
+
+    /** The system picker gave a file back (copied to [file]; [name] is its own name); null: nothing picked. */
+    data class MediaPicked(val file: java.io.File?, val name: String) : PalaceEvent
 }

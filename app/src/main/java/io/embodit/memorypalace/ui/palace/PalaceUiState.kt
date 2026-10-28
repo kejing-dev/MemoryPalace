@@ -3,6 +3,7 @@ package io.embodit.memorypalace.ui.palace
 import io.embodit.memorypalace.data.LanguagePref
 import io.embodit.memorypalace.domain.BlockReason
 import io.embodit.memorypalace.domain.ImportError
+import io.embodit.memorypalace.domain.MediaError
 import io.embodit.memorypalace.domain.SurfaceKind
 import io.embodit.memorypalace.domain.Vec3
 
@@ -10,14 +11,21 @@ enum class Phase { STARTING, NO_PERMISSION, SCANNING, READY }
 
 enum class Mode { HOME, PLACING, REVIEW, REVIEW_DONE, RECALL, RECALL_DONE }
 
-/** Pages of the library popup (v0.2: new palace -> poetry / Wikipedia / file) and settings. */
-enum class Popup { LIBRARY, NEW_PALACE, POETRY, WIKI, IMPORT, SETTINGS }
+/**
+ * Pages of the library popup (v0.2: new palace -> poetry / Wikipedia / file; v0.3: content library S32,
+ * blank palace S33, add an item S34 - S38) and settings.
+ */
+enum class Popup { LIBRARY, NEW_PALACE, POETRY, WIKI, IMPORT, SETTINGS, CONTENT, BLANK, ADD_ITEM }
+
+/** v0.3 add-an-item pages (S34 menu, S35 text, S36 image, S37 3D model, S38 error) and the locus names. */
+enum class AddStep { MENU, TEXT, IMAGE, MODEL, GROUP, RENAME, ERROR }
 
 enum class HomeKind { EMPTY, DUE, DONE, LOST }
 
 enum class ConfirmKind { TEAR_DOWN, DELETE_LOCUS, END_PLACING }
 
-enum class NudgeKind { TOO_FAR, GO_FIRST, FLIP_FIRST, PLACE_FAILED }
+/** v0.3: NOTHING_DUE replaces the old "x m closer" (S11): no step ever asks for walking. */
+enum class NudgeKind { NOTHING_DUE, GO_FIRST, FLIP_FIRST, PLACE_FAILED }
 
 /** One row of the palace library (design S03). */
 data class PalaceRow(
@@ -73,6 +81,10 @@ data class LocusUi(
     /** Cards waiting in it: due today (home), still to rate (review). */
     val due: Int,
     val tone: Tone,
+    /** v0.3 hover peek (design `interactionModel.hover.peek`): the card a glance shows under the plaque. */
+    val peek: String = "",
+    /** The peek is an image card: its file. */
+    val peekImage: String? = null,
 ) {
     enum class Tone { DUE, NEXT, DONE, DIM }
 }
@@ -100,6 +112,12 @@ data class CellUi(
     val wrong: Boolean = false,
     /** The small credit line on the back: 《春望》· 杜甫, or 维基百科《长城》· CC BY-SA 4.0. */
     val source: String = "",
+    /** v0.3: an image card (absolute file path). */
+    val image: String? = null,
+    /** v0.3: a card with a 3D memory object. */
+    val model: Boolean = false,
+    /** v0.3: the last cell while placing, 「＋ 加记忆点」 (S34). */
+    val add: Boolean = false,
 )
 
 /** The open locus: a title above and the grid below; for a single-card locus the plaque is the card. */
@@ -136,6 +154,46 @@ data class PlacingUi(
     val edit: String?,
     val canUndo: Boolean,
     val busy: Boolean,
+    /** A blank palace: every pinch adds a new locus 「位置 n」. */
+    val free: Boolean = false,
+)
+
+/** One collection row of the content library (S32); [expanded] lists its volumes. */
+data class CollectionUi(val id: String, val name: String, val structure: String, val cards: Int, val generated: Boolean, val volumes: List<VolumeUi>, val expanded: Boolean)
+
+data class VolumeUi(val id: String, val name: String, val loci: Int, val cards: Int, val inLibrary: Boolean)
+
+data class ContentUi(val category: String, val collections: List<CollectionUi>, val packs: List<PackUi>)
+
+/** The add-an-item popup (S34 - S38) for [targetTitle] (a locus or a sub-locus). */
+data class AddUi(
+    val step: AddStep,
+    val targetTitle: String,
+    /** S36: the scaled copy of the picked image. */
+    val image: String? = null,
+    val imageScaled: Boolean = false,
+    /** S37: the model is loaded and scaled to 0.30 m (null: still loading). */
+    val modelReady: Boolean? = null,
+    val modelHeavy: Boolean = false,
+    val beside: Boolean = true,
+    val error: MediaError? = null,
+    /** A sub-locus can only go on the locus level (depth <= 3). */
+    val canGroup: Boolean = true,
+    val busy: Boolean = false,
+)
+
+/** A 3D memory object in the room (design `userContent.itemTypes.model.display`). */
+data class ModelUi(
+    val nodeId: String,
+    val locusId: String,
+    val file: String,
+    /** Stands next to the plaque, always seen; else it floats over its open card. */
+    val beside: Boolean,
+    val yawDeg: Float,
+    /** On-card models only show while their locus is open at their level. */
+    val shown: Boolean,
+    /** The cell index (0-based) it floats over when on a card. */
+    val cell: Int = -1,
 )
 
 data class ReviewUi(val done: Int, val total: Int, val nextNumber: Int?, val nextTitle: String?, val hereDue: Int, val undo: Boolean, val single: Boolean)
@@ -176,10 +234,16 @@ data class PalaceUiState(
     val loci: List<LocusUi> = emptyList(),
     /** The locus the line leads to and the pocket names (review: next with due cards; recall: next in order). */
     val targetLocus: String? = null,
-    /** Loci that may open when walked up to. */
-    val wakeCandidates: Set<String> = emptySet(),
     val open: OpenUi? = null,
     val placing: PlacingUi? = null,
+    /** v0.3: S32 / S34 - S38. */
+    val content: ContentUi? = null,
+    val add: AddUi? = null,
+    val models: List<ModelUi> = emptyList(),
+    /** The model the stick turns (placing). */
+    val selectedModel: String? = null,
+    /** S37: a freshly picked model to load and measure (absolute path). */
+    val pendingModel: String? = null,
     val review: ReviewUi? = null,
     val summary: SummaryUi? = null,
     val recall: RecallUi? = null,
@@ -200,5 +264,5 @@ data class PalaceUiState(
 ) {
     /** The reticle and plane taps are live. */
     val aiming: Boolean
-        get() = mode == Mode.PLACING && confirm == null && popup == null && placing?.edit == null
+        get() = mode == Mode.PLACING && confirm == null && popup == null && placing?.edit == null && open == null && placing?.let { it.number <= it.total || it.free } == true
 }

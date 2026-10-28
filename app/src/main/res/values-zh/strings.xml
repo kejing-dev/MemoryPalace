@@ -16,11 +16,11 @@
     <string name="home_start_placing">开始布置</string>
     <string name="home_due_cards">张卡今日待复习</string>
     <string name="home_due_loci">在 %d 个位置</string>
-    <string name="home_walk_hint">绕着这些位置走走，让设备记住</string>
+    <string name="home_walk_hint">原地环顾一下，让设备记住这些位置</string>
     <string name="home_start_review">开始复习</string>
     <string name="home_done">今天完成了</string>
     <string name="home_tomorrow">明天 %d 张</string>
-    <string name="home_recall">顺序走一遍</string>
+    <string name="home_recall">顺序回忆</string>
     <string name="lost_line">个位置找不到了（%d 张卡）</string>
     <string name="lost_hint">换了房间？回到原来的房间再找找</string>
     <string name="lost_retry">再找找</string>
@@ -38,10 +38,10 @@
     <string name="place_title">布置 第 %d 个位置</string>
     <string name="place_done">完成</string>
     <string name="place_pinned">%s 钉好了 ✓</string>
-    <string name="place_hint">看向要放的地方捏一下，就钉在前方约 1.2 m 处</string>
+    <string name="place_hint">看向或用手柄指向要放的地方，捏一下或扣扳机；摇杆上下推远拉近（0.6–2 m）</string>
     <string name="place_failed">没钉住，再捏一下</string>
     <string name="place_inside">里面：%s</string>
-    <string name="edit_hint">想换地方就删了重贴；里面的卡回到「没布置」</string>
+    <string name="edit_hint">捏位置牌打开它加内容；想换地方就删了重贴</string>
     <string name="edit_delete">删这个位置</string>
     <string name="block_surface">这里贴不了（地板、天花板、门、窗、沙发）</string>
     <string name="block_too_low">太低了，要离地 0.8 m 以上</string>
@@ -53,7 +53,7 @@
     <string name="block_no_surface">看向一面墙或桌面</string>
 
     <string name="review_title">复习 %1$d / %2$d</string>
-    <string name="review_next">下一个位置：%1$s · %2$s</string>
+    <string name="review_next">下一个位置：%1$s</string>
     <string name="review_almost">这一轮马上完成…</string>
     <string name="review_here">这里 %d 张到期</string>
     <string name="review_flip">捏一下翻面</string>
@@ -65,17 +65,17 @@
     <string name="summary_line">记得 %1$d · 模糊 %2$d · 忘了 %3$d</string>
     <string name="ok">好</string>
 
-    <string name="recall_title">顺序走 · 第 %d 个位置</string>
-    <string name="recall_go">下一个位置：%1$s · %2$s</string>
+    <string name="recall_title">顺序回忆 · 第 %d 个位置</string>
+    <string name="recall_go">下一个位置：%1$s</string>
     <string name="recall_think">想一想：%s 放的是哪一段？</string>
     <string name="recall_pinch">想好了捏位置牌揭开</string>
     <string name="recall_progress">%1$s：%2$d / %3$d</string>
     <string name="recall_next_hint">捏开下一张，正反面一起显示，自己判对错</string>
     <string name="recall_judge">对还是错？</string>
-    <string name="result_title">走完了</string>
+    <string name="result_title">回忆完了</string>
     <string name="result_cards">张对</string>
     <string name="result_order_ok">位置顺序全对</string>
-    <string name="result_order_bad">位置 %s 走反了</string>
+    <string name="result_order_bad">位置 %s 顺序错了</string>
     <string name="result_wrong">错的 %d 张已放进今日复习</string>
 
     <string name="confirm_tear">拆掉「%1$s」的 %2$d 个位置？</string>
@@ -123,14 +123,13 @@
     <string name="rate_remembered">✓ 记得</string>
     <string name="judge_right">对</string>
     <string name="judge_wrong">错</string>
-    <string name="nudge_closer">再近 %s m</string>
-    <string name="nudge_go_first">先去 %s →</string>
+    <string name="nudge_go_first">先开 %s</string>
     <string name="nudge_flip_first">先翻 %s</string>
 
     <!-- v0.2 content sources: S27 - S31 -->
     <string name="new_palace">新宫殿</string>
     <string name="new_palace_title">新宫殿</string>
-    <string name="group_poetry">诗词</string>
+    <string name="group_poetry">诗词与内容库</string>
     <string name="group_mine">我的</string>
     <string name="from_wikipedia">来自维基百科</string>
     <string name="source_poetry">诗词</string>
@@ -153,4 +152,57 @@
     <string name="wiki_unreachable_sub">在中国大陆需要用诗词包或导入</string>
     <string name="wiki_retry">再试一次</string>
     <string name="wiki_go_poetry">去诗词包</string>
+
+    <!-- v0.3: content library, blank palace, add an item, look-and-pinch -->
+    <string name="nudge_nothing_due">这里今天不用复习</string>
+    <string name="review_open_hint">看一眼位置牌就能看到卡；捏一下或扣扳机打开，远处也行</string>
+    <string name="recall_open_hint">看向它，捏一下或扣扳机打开（不用走过去）</string>
+    <string name="edit_add_hint">捏格子最后的「＋」加文字、图片或 3D 模型；捏标题收起</string>
+    <string name="edit_stick_turn">摇杆左右转动选中的模型</string>
+    <string name="edit_rename">改名</string>
+    <string name="edit_object">放一个记忆物</string>
+    <string name="add_item">加记忆点</string>
+    <string name="add_target">加到：%s</string>
+    <string name="add_text">写文字</string>
+    <string name="add_image">选图片</string>
+    <string name="add_model">选 3D 模型</string>
+    <string name="add_group">子位置</string>
+    <string name="add_front">正面（必填，≤40 字）</string>
+    <string name="add_back">背面（可空，≤60 字）</string>
+    <string name="add_name">名字</string>
+    <string name="add_model_name">名字（必填）</string>
+    <string name="add_picking">正在等你在文件选择器里选…</string>
+    <string name="add_image_scaled">已缩到 1024 px</string>
+    <string name="add_model_loading">正在加载模型…</string>
+    <string name="add_model_ready">已加载 · 已缩放到 0.30 m</string>
+    <string name="add_model_heavy">模型太大，可能卡顿（仍可放）</string>
+    <string name="add_beside">放在位置旁（一直可见）</string>
+    <string name="add_on_card">放在卡上</string>
+    <string name="add_files_hint">图片 png / jpg / webp，模型 .glb / .usdz：用 USB 拷到头显的 Download 文件夹</string>
+    <string name="media_format_model">请导出成 .glb 或 .usdz</string>
+    <string name="media_format_image">只收 png、jpg、webp 图片</string>
+    <string name="media_big_image">图片超过 15 MB</string>
+    <string name="media_big_model">模型超过 25 MB</string>
+    <string name="media_load_failed">模型加载失败</string>
+    <string name="media_too_many_models">这座宫殿已经有 12 个 3D 模型</string>
+    <string name="media_no_picker">这台设备打不开文件选择器</string>
+    <string name="media_full">这里放满了（每层 8 个、每座宫殿 120 张卡）</string>
+    <string name="source_library">内容库</string>
+    <string name="source_library_sub">离线 · 30 多座现成宫殿</string>
+    <string name="source_blank">空白宫殿</string>
+    <string name="source_blank_sub">自己加文字、图片、3D 模型</string>
+    <string name="blank_name">宫殿名字</string>
+    <string name="blank_hint">起好名字就开始布置：每捏一下钉一个新位置，再捏位置牌往里加东西。</string>
+    <string name="blank_start">开始布置</string>
+    <string name="cat_poetry">诗词</string>
+    <string name="cat_language">语言</string>
+    <string name="cat_histgeo">历史地理</string>
+    <string name="cat_science">科学</string>
+    <string name="cat_numbers">数字训练</string>
+    <string name="lib_add">加入宫殿库</string>
+    <string name="lib_count">%1$d 张 · %2$d 卷</string>
+    <string name="lib_generated">%d 张 · 每次随机</string>
+    <string name="lib_volume">%1$d 个位置 · %2$d 张卡</string>
+    <string name="lib_new_shuffled">新建一座（随机）</string>
+    <string name="lib_license">全部离线。古诗文原文公有领域；chinese-poetry、ECDICT 数据集 MIT；首都 Wikidata CC0。</string>
 </resources>

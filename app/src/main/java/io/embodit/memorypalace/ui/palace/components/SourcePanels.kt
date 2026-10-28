@@ -75,12 +75,13 @@ private fun SourceRow(name: String, icon: Int, title: String, sub: String, onCli
     )
 }
 
-/** S27: three ways to a new palace. */
+/** S27 (v0.3): four ways to a new palace — the content library, a blank one, Wikipedia, a file. */
 @Composable
 internal fun ColumnScope.NewPalaceView(onEvent: (PalaceEvent) -> Unit) {
     Header(rs(R.string.new_palace_title), true, onEvent) {}
     Column(modifier = Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SourceRow("source_poetry", R.drawable.ic_scroll, rs(R.string.source_poetry), rs(R.string.source_poetry_sub)) { onEvent(PalaceEvent.SourcePoetry) }
+        SourceRow("source_library", R.drawable.ic_library, rs(R.string.source_library), rs(R.string.source_library_sub)) { onEvent(PalaceEvent.SourceLibrary) }
+        SourceRow("source_blank", R.drawable.ic_edit, rs(R.string.source_blank), rs(R.string.source_blank_sub)) { onEvent(PalaceEvent.SourceBlank) }
         SourceRow("source_wiki", R.drawable.ic_globe_wiki, rs(R.string.source_wiki), rs(R.string.source_wiki_sub)) { onEvent(PalaceEvent.SourceWiki) }
         SourceRow("source_file", R.drawable.ic_import, rs(R.string.source_file), rs(R.string.source_file_sub)) { onEvent(PalaceEvent.SourceFile) }
     }

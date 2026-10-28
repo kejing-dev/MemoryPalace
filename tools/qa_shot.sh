@@ -6,7 +6,7 @@
 # .scratch/shots/<id>.png (host console capture) and prints the reached designState.
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-DEV=${DEV:-emulator-5566}
+DEV=${DEV:-emulator-5564}
 id="$1"; shift
 adb -s $DEV logcat -c
 bash "$ROOT/tools/dev.sh" cmd state "$id" >/dev/null

@@ -24,7 +24,18 @@ import io.embodit.memorypalace.domain.Sm2
 import io.embodit.memorypalace.domain.Spot
 import io.embodit.memorypalace.domain.Srs
 import io.embodit.memorypalace.domain.Vec3
-import io.embodit.memorypalace.domain.Wake
+import io.embodit.memorypalace.data.MediaGateway
+import io.embodit.memorypalace.data.MediaOutcome
+import io.embodit.memorypalace.data.PackSource
+import io.embodit.memorypalace.domain.LibraryPacks
+import io.embodit.memorypalace.domain.Limits
+import io.embodit.memorypalace.domain.Media
+import io.embodit.memorypalace.domain.MediaError
+import io.embodit.memorypalace.domain.MediaKind
+import io.embodit.memorypalace.domain.NodeKind
+import io.embodit.memorypalace.domain.PackCollection
+import io.embodit.memorypalace.domain.Palace
+import io.embodit.memorypalace.platform.AssetPackSource
 import io.embodit.memorypalace.platform.PalaceGraph
 import io.embodit.memorypalace.platform.PalaceLog
 import io.embodit.memorypalace.platform.PickerActivity
@@ -53,6 +64,9 @@ sealed interface PalaceEffect {
     data object RestartSensing : PalaceEffect
 
     data object OpenPicker : PalaceEffect
+
+    /** v0.3: the system picker for an image or a model ([PickerActivity.MEDIA_IMAGE] / [PickerActivity.MEDIA_MODEL]). */
+    data class OpenMediaPicker(val kind: String) : PalaceEffect
 }
 
 /**
@@ -67,6 +81,8 @@ class PalaceViewModel(
     private val versionName: String,
     private val wiki: WikiClient? = null,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val packs: PackSource? = null,
+    private val media: MediaGateway? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PalaceUiState())
@@ -129,6 +145,27 @@ class PalaceViewModel(
     private var wikiFailed = false
     private var wikiJob: Job? = null
 
+    // ---- v0.3 content library (S32), blank palace (S33), add an item (S34 - S38)
+    private val collections: List<PackCollection> by lazy { packs?.index()?.let { runCatching { LibraryPacks.parseIndex(it) }.getOrNull() } ?: emptyList() }
+    private var libCategory = LibraryPacks.categories.first()
+    private var libExpanded: String? = null
+    private var addStep: AddStep? = null
+    private var addFor: String? = null
+    private var addFile: String? = null
+    private var addName = ""
+    private var addScaled = false
+    private var addModelReady: Boolean? = null
+    private var addHeavy = false
+    private var addBeside = true
+    private var addError: MediaError? = null
+    private var addBusy = false
+    private var selectedModel: String? = null
+
+    /** Text fields of S33 / S35 - S37 (Compose state read by the fields directly, as [wikiInput]). */
+    val nameInput = mutableStateOf("")
+    val frontInput = mutableStateOf("")
+    val backInput = mutableStateOf("")
+
     private var nudgeJob: Job? = null
     private var undoJob: Job? = null
     private var laterJob: Job? = null
@@ -142,7 +179,12 @@ class PalaceViewModel(
     private var debugBlock: BlockReason? = null
 
     init {
+        PickerActivity.mediaSink = { file, name -> onEvent(PalaceEvent.MediaPicked(file, name)) }
         publish()
+    }
+
+    override fun onCleared() {
+        PickerActivity.mediaSink = null
     }
 
     private val today: Int
@@ -186,11 +228,52 @@ class PalaceViewModel(
             is PalaceEvent.AnchorMoved -> anchorMoved(e.anchorId, e.position, e.rotation)
             is PalaceEvent.AimChanged -> if (debugBlock == null && block != e.block) block = e.block else return
             is PalaceEvent.PlaceTapped -> placeTapped(e.spot, e.block)
-            is PalaceEvent.LocusTapped -> locusTapped(e.nodeId, e.distance)
-            is PalaceEvent.LocusWoke -> woke(e.nodeId)
-            is PalaceEvent.NearOther -> nearOther(e.nodeId)
-            is PalaceEvent.CellTapped -> cellTapped(e.nodeId, e.distance)
-            is PalaceEvent.TitleTapped -> titleTapped(e.distance)
+            is PalaceEvent.LocusTapped -> locusTapped(e.nodeId)
+            is PalaceEvent.CellTapped -> cellTapped(e.nodeId)
+            is PalaceEvent.TitleTapped -> titleTapped()
+            is PalaceEvent.ModelTapped -> if (mode == Mode.PLACING) selectedModel = e.nodeId
+            is PalaceEvent.ModelTurned -> setMedia(e.nodeId) { it.copy(yawDeg = e.yawDeg) }
+            is PalaceEvent.ModelLoaded -> modelLoaded(e.file, e.ok, e.heavy)
+            PalaceEvent.SourceLibrary -> popup = Popup.CONTENT
+            PalaceEvent.SourceBlank -> {
+                nameInput.value = ""
+                popup = Popup.BLANK
+            }
+            is PalaceEvent.LibraryCategory -> {
+                libCategory = e.category
+                libExpanded = null
+            }
+            is PalaceEvent.LibraryExpand -> libExpanded = if (libExpanded == e.collectionId) null else e.collectionId
+            is PalaceEvent.AddVolume -> addVolume(e.volumeId)
+            is PalaceEvent.AddGenerated -> addGenerated(e.collectionId)
+            PalaceEvent.BlankCreate -> blankCreate()
+            PalaceEvent.AddItem -> beginAdd(path.lastOrNull() ?: openLocus)
+            PalaceEvent.AddText -> {
+                frontInput.value = ""
+                backInput.value = ""
+                addStep = AddStep.TEXT
+            }
+            PalaceEvent.AddImage -> pickMedia(PickerActivity.MEDIA_IMAGE)
+            PalaceEvent.AddModel -> pickMedia(PickerActivity.MEDIA_MODEL)
+            PalaceEvent.AddGroup -> {
+                nameInput.value = ""
+                addStep = AddStep.GROUP
+            }
+            is PalaceEvent.AddBeside -> addBeside = e.beside
+            PalaceEvent.AddDone -> addDone()
+            PalaceEvent.RenameLocus -> edit?.let { id ->
+                beginAdd(id)
+                nameInput.value = tree()[id]?.title.orEmpty()
+                addStep = AddStep.RENAME
+            }
+            PalaceEvent.PlaceObject -> edit?.let { id ->
+                beginAdd(id)
+                if (addStep == AddStep.MENU) {
+                    addBeside = true
+                    pickMedia(PickerActivity.MEDIA_MODEL)
+                }
+            }
+            is PalaceEvent.MediaPicked -> mediaPicked(e.file, e.name)
             PalaceEvent.ChipClicked -> popup = if (popup == Popup.LIBRARY) null else Popup.LIBRARY
             PalaceEvent.SettingsClicked -> popup = if (popup == Popup.SETTINGS) null else Popup.SETTINGS
             PalaceEvent.StartPlacing -> startPlacing()
@@ -222,6 +305,7 @@ class PalaceViewModel(
                 popup = null
                 importError = null
                 importResult = null
+                endAdd()
                 wikiJob?.cancel()
                 wikiLoading = null
                 wikiSearching = false
@@ -237,7 +321,8 @@ class PalaceViewModel(
             PalaceEvent.NewPalace -> popup = Popup.NEW_PALACE
             PalaceEvent.SourcePoetry, PalaceEvent.GoPoetry -> {
                 wikiFailed = false
-                popup = Popup.POETRY
+                libCategory = LibraryPacks.categories.first()
+                popup = Popup.CONTENT
             }
             PalaceEvent.SourceWiki -> openWiki()
             PalaceEvent.SourceFile -> {
@@ -286,8 +371,9 @@ class PalaceViewModel(
         when (e) {
             is PalaceEvent.LocusTapped -> " id=${e.nodeId} d=${"%.2f".format(Locale.US, e.distance)}"
             is PalaceEvent.CellTapped -> " id=${e.nodeId} d=${"%.2f".format(Locale.US, e.distance)}"
-            is PalaceEvent.LocusWoke -> " id=${e.nodeId}"
-            is PalaceEvent.NearOther -> " id=${e.nodeId}"
+            is PalaceEvent.ModelTurned -> " id=${e.nodeId} yaw=${"%.0f".format(Locale.US, e.yawDeg)}"
+            is PalaceEvent.ModelLoaded -> " ok=${e.ok} heavy=${e.heavy}"
+            is PalaceEvent.MediaPicked -> " name=${e.name} file=${e.file?.length()}"
             is PalaceEvent.PlaceTapped -> " block=${e.block} at=${PalaceLog.pos(e.spot?.position)}"
             is PalaceEvent.Rate -> " q=${e.q}"
             is PalaceEvent.Judge -> " right=${e.right}"
@@ -368,8 +454,22 @@ class PalaceViewModel(
         return tree().loci.firstOrNull { it.id !in placed }
     }
 
+    /** v0.3 blank palace (S33): every pinch adds a new locus 「位置 n」 (up to the 20 a palace holds). */
+    private val freePalace: Boolean
+        get() = lib.currentPalace.source == SOURCE_BLANK
+
+    private fun newLocus(): Node? {
+        val t = tree()
+        if (t.loci.size >= Limits.LOCI_PER_PALACE) return null
+        val n = t.loci.size + 1
+        val node = Node(lib.current + "/l" + clock().toString(36), lib.current, null, t.loci.size, NodeKind.GROUP, title = if (zh) "位置 $n" else "Locus $n")
+        lib = lib.copy(nodes = lib.nodes + node)
+        save()
+        return node
+    }
+
     private fun startPlacing() {
-        if (nextUnplaced() == null) return
+        if (nextUnplaced() == null && !(freePalace && tree().loci.size < Limits.LOCI_PER_PALACE)) return
         popup = null
         mode = Mode.PLACING
         block = null
@@ -380,16 +480,19 @@ class PalaceViewModel(
 
     private fun placeTapped(spot: Spot?, b: BlockReason?) {
         if (mode != Mode.PLACING || confirm != null || popup != null) return
-        if (edit != null) {
+        if (edit != null || openLocus != null) {
             edit = null
+            openLocus = null
+            path = emptyList()
+            flipped = null
             return
         }
-        val next = nextUnplaced() ?: return
         if (busy) return
         if (b != null || spot == null) {
             block = b ?: BlockReason.NO_SURFACE
             return
         }
+        val next = nextUnplaced() ?: (if (freePalace) newLocus() else null) ?: return
         busy = true
         viewModelScope.launch {
             val r = anchors.create(spot.position, "locus:${next.id}")
@@ -410,7 +513,7 @@ class PalaceViewModel(
                             delay(FLASH_MS)
                             if (holdTransients) return@launch
                             flash = null
-                            if (mode == Mode.PLACING && nextUnplaced() == null) {
+                            if (mode == Mode.PLACING && nextUnplaced() == null && !freePalace) {
                                 justPlaced = true
                                 mode = Mode.HOME
                             }
@@ -450,6 +553,8 @@ class PalaceViewModel(
     private fun donePlacing() {
         mode = Mode.HOME
         edit = null
+        close()
+        selectedModel = null
         justPlaced = lociOf().isNotEmpty()
     }
 
@@ -525,42 +630,24 @@ class PalaceViewModel(
         laterJob?.cancel()
     }
 
-    private fun woke(id: String?) {
-        if (mode != Mode.REVIEW && mode != Mode.RECALL) return
-        if (id == openLocus) return
-        openLocus = id
-        path = emptyList()
-        flipped = null
-        if (id != null) PalaceLog.i("WAKE open id=$id") else PalaceLog.i("WAKE close")
-    }
-
-    private fun nearOther(id: String?) {
-        if (mode != Mode.RECALL) return
-        val rc = recall ?: return
-        if (id == null) {
-            if (nudge?.kind == NudgeKind.GO_FIRST && !holdTransients) nudge = null
-            return
-        }
-        val number = numberOf(id) ?: return
-        recall = rc.approachedEarly(number)
-        val next = rc.nextLocus?.let { numberOf(it) } ?: return
-        showNudge(Nudge(NudgeKind.GO_FIRST, circled(next), id), NUDGE_LONG_MS)
-    }
-
     private fun numberOf(locusId: String): Int? = lociOf().indexOfFirst { it.nodeId == locusId }.takeIf { it >= 0 }?.plus(1)
 
-    private fun locusTapped(id: String, distance: Float) {
+    /**
+     * v0.3 (design `interactionModel`, hard rule): a pinch or trigger opens a locus at any distance, one at a
+     * time; nothing asks for walking. Review: a locus with nothing due shakes (S11). Recall: only the next one
+     * opens. Placing: it opens with 「＋ 加记忆点」 and its edit bar. Home: it opens to look through.
+     */
+    private fun locusTapped(id: String) {
         when (mode) {
-            Mode.PLACING -> if (lociOf().any { it.nodeId == id }) edit = id
+            Mode.PLACING ->
+                if (lociOf().any { it.nodeId == id }) {
+                    if (openLocus != id) open(id)
+                    edit = id
+                }
             Mode.REVIEW -> {
-                if (distance > Wake.OPEN_M) return tooFar(id, distance)
                 val t = tree()
-                if (pendingUnder(t, id) == 0) return
-                if (openLocus != id) {
-                    openLocus = id
-                    path = emptyList()
-                    flipped = null
-                } else if (t[id]?.isCard == true && id in review!!.pending) flipped = id
+                if (pendingUnder(t, id) == 0) return showNudge(Nudge(NudgeKind.NOTHING_DUE, "", id), NUDGE_SHORT_MS)
+                if (openLocus != id) open(id) else if (t[id]?.isCard == true && id in review!!.pending) flipped = id
             }
             Mode.RECALL -> {
                 val rc = recall ?: return
@@ -569,12 +656,26 @@ class PalaceViewModel(
                     rc.nextLocus?.let { numberOf(it) }?.let { showNudge(Nudge(NudgeKind.GO_FIRST, circled(it), id), NUDGE_LONG_MS) }
                     return
                 }
-                if (distance > Wake.OPEN_M) return tooFar(id, distance)
                 openLocus = id
                 revealOrPinch(id)
             }
+            Mode.HOME -> if (openLocus != id) open(id) else if (tree()[id]?.isCard == true) flipped = if (flipped == id) null else id
             else -> Unit
         }
+    }
+
+    private fun open(id: String) {
+        openLocus = id
+        path = emptyList()
+        flipped = null
+        PalaceLog.i("OPEN id=$id mode=$mode")
+    }
+
+    private fun close() {
+        if (openLocus != null) PalaceLog.i("OPEN close id=$openLocus")
+        openLocus = null
+        path = emptyList()
+        flipped = null
     }
 
     private fun revealOrPinch(locusId: String) {
@@ -588,12 +689,8 @@ class PalaceViewModel(
         } else if (t[locusId]?.isCard == true && rc.open == null) recall = rc.pinch(locusId).first
     }
 
-    private fun tooFar(id: String, distance: Float) {
-        showNudge(Nudge(NudgeKind.TOO_FAR, String.format(Locale.US, "%.1f", Wake.closer(distance)), id), NUDGE_SHORT_MS)
-    }
-
-    private fun cellTapped(id: String, distance: Float) {
-        if (distance > Wake.OPEN_M) return tooFar(openLocus ?: id, distance)
+    private fun cellTapped(id: String) {
+        if (id == ADD_CELL) return beginAdd(path.lastOrNull() ?: openLocus)
         val t = tree()
         val n = t[id] ?: return
         when (mode) {
@@ -620,15 +717,27 @@ class PalaceViewModel(
                 recall = next
                 PalaceLog.i("RECALL pinch id=$id open=${next.open}")
             }
+            // browsing (home) and placing: a sub-locus goes a level in, a card turns over and back
+            Mode.HOME, Mode.PLACING ->
+                if (n.isCard) {
+                    flipped = if (flipped == id) null else id
+                    if (n.media?.kind == MediaKind.MODEL) selectedModel = id
+                } else {
+                    path = path + id
+                    flipped = null
+                    PalaceLog.i("LEVEL enter id=$id")
+                }
             else -> Unit
         }
     }
 
-    private fun titleTapped(distance: Float) {
+    /** The title of an open locus: one level up, or (on the locus level) closes it (design `click`). */
+    private fun titleTapped() {
         val id = openLocus ?: return
         when (mode) {
-            Mode.REVIEW -> if (path.isNotEmpty()) upLevel() else locusTapped(id, distance)
-            Mode.RECALL -> if (distance <= Wake.OPEN_M) revealOrPinch(id) else tooFar(id, distance)
+            Mode.REVIEW -> if (path.isNotEmpty()) upLevel() else if (tree()[id]?.isCard == true) locusTapped(id) else close()
+            Mode.RECALL -> revealOrPinch(id)
+            Mode.HOME, Mode.PLACING -> if (path.isNotEmpty()) upLevel() else if (tree()[id]?.isCard == true) flipped = if (flipped == id) null else id else close()
             else -> Unit
         }
     }
@@ -801,8 +910,20 @@ class PalaceViewModel(
                         wikiFailed = false
                         Popup.WIKI
                     } else Popup.NEW_PALACE
-                Popup.POETRY, Popup.IMPORT -> Popup.NEW_PALACE
+                Popup.POETRY, Popup.IMPORT, Popup.CONTENT, Popup.BLANK -> Popup.NEW_PALACE
                 Popup.NEW_PALACE -> Popup.LIBRARY
+                // add pages: back to the menu; from the menu (or a rename) the popup closes
+                Popup.ADD_ITEM ->
+                    if (addStep == AddStep.MENU || addStep == AddStep.RENAME || addFor == null) {
+                        endAdd()
+                        null
+                    } else {
+                        val keep = addFor
+                        endAdd()
+                        addFor = keep
+                        addStep = AddStep.MENU
+                        Popup.ADD_ITEM
+                    }
                 else -> null
             }
     }
@@ -816,6 +937,227 @@ class PalaceViewModel(
         }
         pickPalace(id)
     }
+
+    // ---- v0.3 content library (S32) and blank palace (S33) --------------------------------------------
+
+    /** T19: a volume joins the library as a palace with fixed ids (progress survives updates); one already in it opens. */
+    private fun addVolume(volumeId: String) {
+        val pid = LibraryPacks.palaceId(volumeId)
+        if (lib.palaces.none { it.id == pid }) {
+            val vol = collections.flatMap { it.volumes }.firstOrNull { it.id == volumeId } ?: return
+            val json = packs?.volume(vol.file) ?: return PalaceLog.w("PACK missing ${vol.file}")
+            val built = runCatching { LibraryPacks.build(json, lib.palaces.size % 6) }
+            val (palace, nodes) = built.getOrNull() ?: return PalaceLog.e("PACK bad ${vol.file}: ${built.exceptionOrNull()}")
+            lib = lib.copy(palaces = lib.palaces + palace, nodes = lib.nodes.filter { it.palaceId != pid } + nodes)
+            PalaceLog.i("PACK added $volumeId loci=${nodes.count { it.parentId == null }} cards=${nodes.count { it.isCard }}")
+        }
+        pickPalace(pid)
+    }
+
+    /** The training collections are shuffled anew each time (a new palace every time). */
+    private fun addGenerated(collectionId: String) {
+        val c = collections.firstOrNull { it.id == collectionId } ?: return
+        val tag = java.text.SimpleDateFormat("MMdd-HHmm", Locale.US).format(java.util.Date(clock()))
+        val (palace, nodes) = LibraryPacks.generate(collectionId, c.zh, c.en, tag, lib.palaces.size % 6) ?: return
+        lib = lib.copy(palaces = lib.palaces.filter { it.id != palace.id } + palace, nodes = lib.nodes.filter { it.palaceId != palace.id } + nodes)
+        PalaceLog.i("PACK generated ${palace.id} cards=${nodes.count { it.isCard }}")
+        pickPalace(palace.id)
+    }
+
+    /** S33: a named empty palace, straight into placing; its first locus is 「位置 1」. */
+    private fun blankCreate() {
+        val name = nameInput.value.trim().take(Limits.FRONT_MAX)
+        if (name.isEmpty()) return
+        val id = "my-" + clock().toString(36)
+        val first = Node("$id/l0", id, null, 0, NodeKind.GROUP, title = if (zh) "位置 1" else "Locus 1")
+        lib = lib.copy(palaces = lib.palaces + Palace(id, name, name, lib.palaces.size % 6, SOURCE_BLANK), nodes = lib.nodes + first)
+        PalaceLog.i("PALACE blank id=$id name=$name")
+        pickPalace(id)
+        startPlacing()
+    }
+
+    // ---- v0.3 add an item (S34 - S38) --------------------------------------------------------------
+
+    private fun beginAdd(target: String?) {
+        val t = tree()
+        val node = target?.let { t[it] } ?: return
+        if (node.isCard) return
+        endAdd()
+        addFor = target
+        popup = Popup.ADD_ITEM
+        addStep = AddStep.MENU
+        if (t.children(target).size >= Limits.CHILDREN_PER_NODE || t.cards.size >= Limits.CARDS_PER_PALACE) {
+            addError = MediaError.FULL
+            addStep = AddStep.ERROR
+        }
+        PalaceLog.i("ADD begin for=$target")
+    }
+
+    /** Leaves the add pages; a picked file that did not become an item is deleted again. */
+    private fun endAdd() {
+        addFile?.let { f -> if (lib.nodes.none { it.media?.file == f }) media?.delete(f) }
+        addStep = null
+        addFile = null
+        addName = ""
+        addScaled = false
+        addModelReady = null
+        addHeavy = false
+        addError = null
+        addBusy = false
+    }
+
+    private fun pickMedia(kind: String) {
+        val all = tree().cards.mapNotNull { it.media }
+        if (kind == PickerActivity.MEDIA_MODEL && all.count { it.kind == MediaKind.MODEL } >= Limits.MODELS_PER_PALACE) return failAdd(MediaError.TOO_MANY_MODELS)
+        if (kind == PickerActivity.MEDIA_IMAGE && all.count { it.kind == MediaKind.IMAGE } >= Limits.IMAGES_PER_PALACE) return failAdd(MediaError.FULL)
+        addBusy = true
+        addStep = if (kind == PickerActivity.MEDIA_MODEL) AddStep.MODEL else AddStep.IMAGE
+        addModelReady = null
+        nameInput.value = ""
+        backInput.value = ""
+        effectChannel.trySend(PalaceEffect.OpenMediaPicker(kind))
+    }
+
+    private fun failAdd(e: MediaError) {
+        addFile?.let { f -> if (lib.nodes.none { it.media?.file == f }) media?.delete(f) }
+        addFile = null
+        addError = e
+        addStep = AddStep.ERROR
+        addBusy = false
+        PalaceLog.i("ADD error $e")
+    }
+
+    /** The picker's copy -> the palace's media folder (scaled image / checked model): S36 / S37, or S38. */
+    private fun mediaPicked(file: File?, name: String) {
+        if (popup != Popup.ADD_ITEM) {
+            file?.delete()
+            return
+        }
+        val kind = addStep
+        if (file == null) {
+            addBusy = false
+            if (name == "none") failAdd(MediaError.NO_PICKER) else addStep = AddStep.MENU
+            return
+        }
+        val gateway = media ?: return
+        val palaceId = lib.current
+        viewModelScope.launch {
+            val r = if (kind == AddStep.MODEL) gateway.model(file, name, palaceId) else gateway.image(file, name, palaceId)
+            file.delete()
+            addBusy = false
+            when (r) {
+                is MediaOutcome.Ok -> {
+                    addFile = r.file
+                    addName = name.substringBeforeLast('.').take(Limits.FRONT_MAX)
+                    addScaled = r.scaled
+                    if (kind == AddStep.MODEL) {
+                        nameInput.value = addName
+                        addModelReady = null
+                    }
+                }
+                is MediaOutcome.Failed -> failAdd(r.error)
+            }
+            publish()
+        }
+    }
+
+    /** The scene loaded and measured the picked model (S37) or could not (S38). */
+    private fun modelLoaded(file: String, ok: Boolean, heavy: Boolean) {
+        val mine = addFile?.let { media?.absolute(it) }
+        if (addStep != AddStep.MODEL || mine != file) return
+        if (ok) {
+            addModelReady = true
+            addHeavy = heavy
+        } else failAdd(MediaError.LOAD_FAILED)
+    }
+
+    private fun addDone() {
+        val target = addFor ?: return
+        val t = tree()
+        val order = t.children(target).size
+        val id = target + "/u" + clock().toString(36)
+        val front = frontInput.value.trim().take(Limits.FRONT_MAX)
+        val back = backInput.value.trim().take(Limits.BACK_MAX)
+        val name = nameInput.value.trim().take(Limits.FRONT_MAX)
+        val node: Node? =
+            when (addStep) {
+                AddStep.TEXT -> if (front.isEmpty()) return else Node(id, lib.current, target, order, NodeKind.CARD, front = front, back = back, srs = Srs())
+                AddStep.IMAGE -> {
+                    val f = addFile ?: return
+                    Node(id, lib.current, target, order, NodeKind.CARD, front = addName, back = back, srs = Srs(), media = Media(MediaKind.IMAGE, f, addName))
+                }
+                AddStep.MODEL -> {
+                    val f = addFile ?: return
+                    if (addModelReady != true) return
+                    Node(id, lib.current, target, order, NodeKind.CARD, front = name.ifEmpty { addName }, back = back, srs = Srs(), media = Media(MediaKind.MODEL, f, addName, beside = addBeside))
+                }
+                AddStep.GROUP -> if (name.isEmpty() || t.pathTo(target).size >= Limits.MAX_DEPTH - 1) return else Node(id, lib.current, target, order, NodeKind.GROUP, title = name)
+                AddStep.RENAME -> {
+                    if (name.isEmpty()) return
+                    lib = lib.copy(nodes = lib.nodes.map { if (it.id == target) it.copy(title = name) else it })
+                    null
+                }
+                else -> return
+            }
+        if (node != null) {
+            var nodes = lib.nodes
+            // one memory object stands beside a locus (design `userContent.limits`): an older one moves onto its card
+            if (node.media?.kind == MediaKind.MODEL && node.media.beside) {
+                val locus = PalaceTree(lib.current, nodes + node).locusOf(target)?.id
+                val mine = locus?.let { l -> PalaceTree(lib.current, nodes).cardsUnder(l).map { it.id }.toSet() } ?: emptySet()
+                nodes = nodes.map { n -> if (n.id in mine && n.media?.beside == true) n.copy(media = n.media.copy(beside = false)) else n }
+            }
+            lib = lib.copy(nodes = nodes + node)
+            if (node.media?.kind == MediaKind.MODEL) selectedModel = node.id
+            PalaceLog.i("ADD $addStep id=$id under=$target media=${node.media?.file}")
+        } else PalaceLog.i("ADD rename $target -> $name")
+        addFile = null
+        save()
+        popup = null
+        endAdd()
+    }
+
+    private fun setMedia(id: String, change: (Media) -> Media) {
+        lib = lib.copy(nodes = lib.nodes.map { n -> if (n.id == id && n.media != null) n.copy(media = change(n.media)) else n })
+        save()
+    }
+
+    private fun contentUi(): ContentUi? {
+        if (popup != Popup.CONTENT) return null
+        val rows =
+            collections.filter { it.category == libCategory }.map { c ->
+                CollectionUi(
+                    c.id,
+                    c.name(zh),
+                    c.structure(zh),
+                    c.cards,
+                    c.generated,
+                    c.volumes.map { v -> VolumeUi(v.id, v.name(zh), v.loci, v.cards, lib.palaces.any { it.id == LibraryPacks.palaceId(v.id) }) },
+                    expanded = libExpanded == c.id,
+                )
+            }
+        return ContentUi(libCategory, rows, if (libCategory == LibraryPacks.categories.first()) packsUi() else emptyList())
+    }
+
+    private fun addUi(): AddUi? {
+        val step = addStep ?: return null
+        if (popup != Popup.ADD_ITEM) return null
+        val t = tree()
+        val target = addFor?.let { t[it] }
+        return AddUi(
+            step = step,
+            targetTitle = target?.label.orEmpty(),
+            image = if (step == AddStep.IMAGE) addFile?.let { media?.absolute(it) } else null,
+            imageScaled = addScaled,
+            modelReady = if (step == AddStep.MODEL && addFile != null) addModelReady else null,
+            modelHeavy = addHeavy,
+            beside = addBeside,
+            error = addError,
+            canGroup = target != null && t.pathTo(target.id).size < Limits.MAX_DEPTH - 1,
+            busy = addBusy || (step == AddStep.MODEL && addFile != null && addModelReady == null),
+        )
+    }
+
 
     private fun openWiki() {
         if (popup != Popup.WIKI) {
@@ -981,13 +1323,8 @@ class PalaceViewModel(
                 Mode.RECALL -> recall?.nextLocus
                 else -> null
             }
-        val candidates =
-            when (mode) {
-                Mode.REVIEW -> placedLoci.filter { found(it) && t.cardsUnder(it.nodeId).any { c -> c.id in pending } }.map { it.nodeId }.toSet()
-                Mode.RECALL -> setOfNotNull(recall?.nextLocus)
-                else -> emptySet()
-            }
-        if (openLocus != null && mode == Mode.REVIEW && openLocus !in candidates && flipped == null && undo == null) {
+        // a locus whose due cards are all rated closes (review)
+        if (openLocus != null && mode == Mode.REVIEW && pendingUnder(t, openLocus!!) == 0 && flipped == null && undo == null) {
             openLocus = null
             path = emptyList()
         }
@@ -1008,7 +1345,24 @@ class PalaceViewModel(
                         }
                         else -> if (due > 0) LocusUi.Tone.DUE else LocusUi.Tone.DIM
                     }
+                // v0.3 hover peek: the card a glance shows (review: the first due one; recall: no spoiler)
+                val peekNode =
+                    when (mode) {
+                        Mode.REVIEW -> cards.firstOrNull { it.id in pending }
+                        Mode.RECALL, Mode.RECALL_DONE -> null
+                        Mode.PLACING -> t.children(l.nodeId).firstOrNull()
+                        else -> cards.firstOrNull { it.srs?.isDue(d) == true } ?: cards.firstOrNull()
+                    }
+                val peek =
+                    when {
+                        mode == Mode.RECALL && l.nodeId == recall?.nextLocus -> circled(i + 1) + " " + if (zh) "这里是哪里？" else "Where is this?"
+                        peekNode == null -> ""
+                        peekNode.isCard -> peekNode.front
+                        else -> peekNode.title + " ▸"
+                    }
                 LocusUi(
+                    peek = peek,
+                    peekImage = peekNode?.media?.takeIf { it.kind == MediaKind.IMAGE }?.let { media?.absolute(it.file) },
                     nodeId = l.nodeId,
                     number = i + 1,
                     title = node?.label ?: "?",
@@ -1034,14 +1388,25 @@ class PalaceViewModel(
             }
 
         val open = openUi(t, loci, palace.name(zh))
+        val levelCells = open?.cells?.map { it.nodeId }.orEmpty()
+        val models =
+            placedLoci.filter { found(it) }.flatMap { l ->
+                t.cardsUnder(l.nodeId).filter { it.media?.kind == MediaKind.MODEL }.mapNotNull { n ->
+                    val m = n.media ?: return@mapNotNull null
+                    val cell = if (open?.locusId == l.nodeId) levelCells.indexOf(n.id) else -1
+                    ModelUi(n.id, l.nodeId, media?.absolute(m.file) ?: m.file, m.beside, m.yawDeg, shown = m.beside || cell >= 0, cell = cell)
+                }
+            }
+        if (selectedModel != null && models.none { it.nodeId == selectedModel }) selectedModel = null
         val placingUi =
             if (mode == Mode.PLACING) {
                 val next = nextUnplaced()
+                val free = freePalace
                 PlacingUi(
                     number = placedLoci.size + 1,
                     placed = placedLoci.size,
-                    total = t.loci.size,
-                    nextTitle = next?.label ?: "",
+                    total = if (free) maxOf(t.loci.size, placedLoci.size + 1).coerceAtMost(Limits.LOCI_PER_PALACE) else t.loci.size,
+                    nextTitle = next?.label ?: if (free) (if (zh) "位置 ${t.loci.size + 1}" else "Locus ${t.loci.size + 1}") else "",
                     nextLines = when {
                         next == null -> emptyList()
                         next.isCard -> listOf(next.front, next.back)
@@ -1053,6 +1418,7 @@ class PalaceViewModel(
                     edit = edit,
                     canUndo = placedLoci.isNotEmpty(),
                     busy = busy,
+                    free = free,
                 )
             } else null
 
@@ -1074,7 +1440,7 @@ class PalaceViewModel(
             lib.palaces.map { p ->
                 val pt = tree(p.id)
                 val pl = lociOf(p.id)
-                PalaceRow(p.id, p.name(zh), p.color, pt.loci.size, pl.size, pt.cards.size, pt.depth, dueCards(p.id).size, p.id == lib.current, Presets.isPack(p.id), p.wiki != null)
+                PalaceRow(p.id, p.name(zh), p.color, pt.loci.size, pl.size, pt.cards.size, pt.depth, dueCards(p.id).size, p.id == lib.current, Presets.isPack(p.id) || p.source.startsWith("lib:"), p.wiki != null)
             }.sortedBy { if (it.poetry) 0 else 1 }
 
         var s =
@@ -1101,9 +1467,13 @@ class PalaceViewModel(
                 justPlaced = justPlaced,
                 loci = loci,
                 targetLocus = target,
-                wakeCandidates = candidates,
                 open = open,
                 placing = placingUi,
+                content = contentUi(),
+                add = addUi(),
+                models = models,
+                selectedModel = selectedModel.takeIf { mode == Mode.PLACING },
+                pendingModel = if (addStep == AddStep.MODEL) addFile?.let { media?.absolute(it) } else null,
                 review = reviewUi,
                 summary = summary.takeIf { mode == Mode.REVIEW_DONE },
                 recall = recallUi,
@@ -1135,11 +1505,22 @@ class PalaceViewModel(
 
     private fun openUi(t: PalaceTree, loci: List<LocusUi>, palaceName: String): OpenUi? {
         val id = openLocus ?: return null
-        if (mode != Mode.REVIEW && mode != Mode.RECALL) return null
+        if (mode == Mode.REVIEW_DONE || mode == Mode.RECALL_DONE) return null
         val l = loci.firstOrNull { it.nodeId == id } ?: return null
         val node = t[id] ?: return null
         val badge = circled(l.number)
         val cards = t.cardsUnder(id).size
+        if (mode == Mode.HOME || mode == Mode.PLACING) {
+            // v0.3 browse / edit: every card can be turned over; placing ends the grid with 「＋ 加记忆点」 (S34)
+            if (node.isCard) return OpenUi(id, l.number, listOf(palaceName), badge, false, emptyList(), browseCell(node, 1, t), cards = 1)
+            val level = path.lastOrNull() ?: id
+            val names = listOf(node.label) + path.mapNotNull { t[it]?.label }
+            val kids = t.children(level)
+            val adding = mode == Mode.PLACING && kids.size < Limits.CHILDREN_PER_NODE
+            val cells = kids.take(if (adding) Limits.CHILDREN_PER_NODE - 1 else Limits.CHILDREN_PER_NODE).mapIndexed { i, c -> browseCell(c, i + 1, t) } +
+                if (adding) listOf(CellUi(ADD_CELL, kids.size + 1, false, "", lit = popup == Popup.ADD_ITEM, add = true)) else emptyList()
+            return OpenUi(id, l.number, listOf(palaceName) + names, "$badge ${names.joinToString(" › ")}", path.isNotEmpty(), cells, cards = cards)
+        }
         if (mode == Mode.REVIEW) {
             val pending = review?.pending ?: emptySet()
             val rated = review?.first?.keys ?: emptySet()
@@ -1180,13 +1561,21 @@ class PalaceViewModel(
                     done = done && c.id !in rc.wrong,
                     wrong = c.id in rc.wrong,
                     source = if (c.isCard) sourceOf(c, t) else "",
+                    image = if (c.isCard) imageOf(c) else null,
+                    model = c.media?.kind == MediaKind.MODEL,
                 )
             }
         return OpenUi(id, l.number, listOf(palaceName) + names, "$badge ${names.joinToString(" › ")}", level != id, cells, cards = cards)
     }
 
+    private fun browseCell(n: Node, index: Int, t: PalaceTree): CellUi =
+        if (n.isCard) CellUi(n.id, index, false, n.front, n.back, lit = true, flipped = flipped == n.id, source = sourceOf(n, t), image = imageOf(n), model = n.media?.kind == MediaKind.MODEL)
+        else CellUi(n.id, index, true, n.title, count = t.children(n.id).size, lit = true)
+
+    private fun imageOf(n: Node): String? = n.media?.takeIf { it.kind == MediaKind.IMAGE }?.let { media?.absolute(it.file) }
+
     private fun cell(n: Node, index: Int, t: PalaceTree, pending: Set<String>, rated: Set<String>): CellUi =
-        if (n.isCard) CellUi(n.id, index, false, n.front, n.back, lit = n.id in pending, flipped = flipped == n.id, done = n.id in rated && n.id !in pending, source = sourceOf(n, t))
+        if (n.isCard) CellUi(n.id, index, false, n.front, n.back, lit = n.id in pending, flipped = flipped == n.id, done = n.id in rated && n.id !in pending, source = sourceOf(n, t), image = imageOf(n), model = n.media?.kind == MediaKind.MODEL)
         else CellUi(n.id, index, true, n.title, badge = t.cardsUnder(n.id).count { it.id in pending }, count = t.children(n.id).size, lit = t.cardsUnder(n.id).any { it.id in pending })
 
     private fun designState(s: PalaceUiState): String =
@@ -1198,6 +1587,16 @@ class PalaceViewModel(
             s.popup == Popup.LIBRARY -> "S03"
             s.popup == Popup.NEW_PALACE -> "S27"
             s.popup == Popup.POETRY -> "S28"
+            s.popup == Popup.CONTENT -> "S32"
+            s.popup == Popup.BLANK -> "S33"
+            s.popup == Popup.ADD_ITEM ->
+                when (s.add?.step) {
+                    AddStep.TEXT -> "S35"
+                    AddStep.IMAGE -> "S36"
+                    AddStep.MODEL -> "S37"
+                    AddStep.ERROR -> "S38"
+                    else -> "S34"
+                }
             s.popup == Popup.WIKI ->
                 when {
                     s.wiki?.failed == true -> "S31"
@@ -1207,14 +1606,15 @@ class PalaceViewModel(
             s.popup == Popup.IMPORT -> if (s.importError != null) "S05" else "S04"
             s.mode == Mode.PLACING ->
                 when {
-                    s.placing?.edit != null -> "S26"
+                    s.placing?.edit != null && s.open == null -> "S26"
+                    s.open != null -> if (s.open.inside) "S14" else "S13"
                     s.placing?.flash != null -> "S08"
                     s.placing?.block != null && s.placing.block != BlockReason.NO_SURFACE -> "S07"
                     else -> "S06"
                 }
             s.mode == Mode.REVIEW ->
                 when {
-                    s.nudge?.kind == NudgeKind.TOO_FAR -> "S11"
+                    s.nudge?.kind == NudgeKind.NOTHING_DUE -> "S11"
                     s.open?.single?.flipped == true || s.open?.cells?.any { it.flipped } == true -> "S15"
                     s.open?.single != null -> "S12"
                     s.open?.inside == true -> "S14"
@@ -1315,6 +1715,8 @@ class PalaceViewModel(
         justPlaced = false
         lostDismissed = false
         debugBlock = null
+        endAdd()
+        selectedModel = null
         wikiJob?.cancel()
         wikiQuery = ""
         wikiInput.value = ""
@@ -1422,6 +1824,26 @@ class PalaceViewModel(
         publish()
     }
 
+    /** The add flow as if the picker had been opened (the debug build hands the sample file over itself). */
+    internal fun debugMediaStep(model: Boolean) {
+        addBusy = true
+        addStep = if (model) AddStep.MODEL else AddStep.IMAGE
+        addModelReady = null
+        nameInput.value = ""
+        backInput.value = ""
+        publish()
+    }
+
+    /** Drops the blank palaces made by earlier debug runs (and their loci). */
+    internal fun debugRemoveBlank() {
+        val ids = lib.palaces.filter { it.source == SOURCE_BLANK }.map { it.id }.toSet()
+        if (ids.isEmpty()) return
+        removeLoci(lib.loci.filter { it.palaceId in ids })
+        lib = lib.copy(palaces = lib.palaces.filter { it.id !in ids }, nodes = lib.nodes.filter { it.palaceId !in ids }, current = if (lib.current in ids) Presets.TANG else lib.current)
+        save()
+        publish()
+    }
+
     internal fun debugPopup(p: Popup?) {
         popup = p
         publish()
@@ -1432,7 +1854,7 @@ class PalaceViewModel(
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val app = context.applicationContext
             val version = runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull() ?: ""
-            return PalaceViewModel(PalaceGraph.store(app), PalaceGraph.anchors, PickerActivity.importDir(app), version, PalaceGraph.wiki(app)) as T
+            return PalaceViewModel(PalaceGraph.store(app), PalaceGraph.anchors, PickerActivity.importDir(app), version, PalaceGraph.wiki(app), packs = AssetPackSource(app), media = PalaceGraph.media(app)) as T
         }
     }
 
@@ -1449,6 +1871,12 @@ class PalaceViewModel(
         const val SEARCH_DEBOUNCE_MS = 300L
         const val WIKI_HITS = 8
         const val ANCHOR_NO_PERMISSION = -5
+
+        /** A palace made with 「空白宫殿」 (S33). */
+        const val SOURCE_BLANK = "blank"
+
+        /** The node id of the 「＋ 加记忆点」 cell. */
+        const val ADD_CELL = "+add"
 
         private val CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳"
 

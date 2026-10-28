@@ -70,6 +70,9 @@ internal fun LibraryPanel(state: PalaceUiState?, onEvent: (PalaceEvent) -> Unit)
             Popup.NEW_PALACE -> NewPalaceView(onEvent)
             Popup.POETRY -> PoetryView(state, onEvent)
             Popup.WIKI -> WikiView(state, onEvent)
+            Popup.CONTENT -> ContentView(state, onEvent)
+            Popup.BLANK -> BlankView(onEvent)
+            Popup.ADD_ITEM -> AddItemView(state, onEvent)
             else -> Palaces(state, onEvent)
         }
     }

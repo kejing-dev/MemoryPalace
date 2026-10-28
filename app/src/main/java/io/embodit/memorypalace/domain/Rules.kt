@@ -42,6 +42,10 @@ object PlaceRules {
     /** v0.2.2: how far ahead along the gaze a locus is pinned when it is placed freely (no surface). */
     const val FREE_DISTANCE = 1.2f
 
+    /** v0.3: the controller stick pushes the spot out / pulls it in (design `spatialLayout.placement.distance`). */
+    const val MIN_DISTANCE = 0.6f
+    const val MAX_DISTANCE = 2.0f
+
     /** Below / above the eyes a free locus may sit (a gaze at the floor or the ceiling is clamped). */
     const val FREE_BELOW_EYE = 0.8f
     const val FREE_ABOVE_EYE = 0.3f
@@ -51,10 +55,10 @@ object PlaceRules {
      * [FREE_DISTANCE] along [dir] from the eyes, its height kept between [FREE_BELOW_EYE] below and
      * [FREE_ABOVE_EYE] above the eyes; its plaque stands upright facing back towards where it was placed from.
      */
-    fun free(head: Vec3, dir: Vec3): Spot {
+    fun free(head: Vec3, dir: Vec3, distance: Float = FREE_DISTANCE): Spot {
         val d = dir.normalized().let { if (it.length < 0.5f) Vec3.AHEAD else it }
         val flat = Vec3(d.x, 0f, d.z).let { if (it.length < 1e-3f) Vec3.AHEAD else it.normalized() }
-        val p = head + d * FREE_DISTANCE
+        val p = head + d * distance.coerceIn(MIN_DISTANCE, MAX_DISTANCE)
         val y = p.y.coerceIn(head.y - FREE_BELOW_EYE, head.y + FREE_ABOVE_EYE)
         return Spot(Vec3(p.x, y, p.z), -flat, SurfaceKind.WALL)
     }
@@ -83,41 +87,12 @@ object PlaceRules {
 }
 
 /**
- * Wake rules (design `spatialLayout.wakeDistance`): a locus opens within 1.00 m (horizontal), closes
- * beyond 1.20 m; one at a time; wall loci also need the head in front of the wall, table loci the
- * head above the table.
+ * v0.3 (design `interactionModel.click.readability`): a locus opened from afar turns to the viewer and
+ * grows with the distance so its cards read as they would at 1 m; capped at 5 times (palaces span <= 5 m).
  */
-object Wake {
-    const val OPEN_M = 1.0f
-    const val CLOSE_M = 1.2f
-    const val LABEL_M = 3.0f
-    const val GAZE_COS = 0.94f // ~20 degrees
+object Readability {
+    const val NEAR_M = 1.0f
+    const val MAX_SCALE = 5f
 
-    fun facing(locus: Locus, head: Vec3): Boolean =
-        when (locus.surface) {
-            SurfaceKind.TABLE -> head.y > locus.position.y
-            else -> locus.normal.dot(head - locus.position) > 0f
-        }
-
-    /**
-     * The locus that should be open now: [current] stays while within [CLOSE_M] (a card turned over
-     * there keeps it too: nothing else wakes while it is near); otherwise the one looked at among
-     * [candidates] within [OPEN_M], else the nearest.
-     */
-    fun pick(loci: List<Locus>, candidates: Set<String>, current: String?, head: HeadPose): String? {
-        val cur = current?.let { id -> loci.firstOrNull { it.nodeId == id } }
-        if (cur != null && cur.nodeId in candidates) {
-            val d = flatDistance(cur.position, head.position)
-            if (d <= CLOSE_M && facing(cur, head.position)) return cur.nodeId
-        }
-        val near = loci.filter { it.nodeId in candidates && flatDistance(it.position, head.position) <= OPEN_M && facing(it, head.position) }
-        if (near.isEmpty()) return null
-        val f = head.forward
-        val gazed =
-            near.map { it to (it.position - head.position).normalized().dot(f) }.filter { it.second >= GAZE_COS }.maxByOrNull { it.second }?.first
-        return (gazed ?: near.minByOrNull { flatDistance(it.position, head.position) })?.nodeId
-    }
-
-    /** "Come 0.6 m closer": how much farther than [OPEN_M] a target is, rounded up to 0.1 m. */
-    fun closer(distance: Float): Float = (kotlin.math.ceil(((distance - OPEN_M).coerceAtLeast(0.1f)) * 10f) / 10f)
+    fun scale(distance: Float): Float = (distance / NEAR_M).coerceIn(1f, MAX_SCALE)
 }

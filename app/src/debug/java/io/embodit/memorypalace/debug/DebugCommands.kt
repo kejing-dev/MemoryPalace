@@ -54,6 +54,11 @@ import org.json.JSONObject
  * - `hold` s=on|off           transient states (flash, nudges, import result) stay
  * - `wikiFail` s=on|off       every Wikipedia request fails (S31)
  * - `wikiFixture` s=on|off    Wikipedia answers from assets/wiki (长城, 长城镇, Great Wall of China): QA offline
+ * - v0.3 `pack` s=add|gen a… `pack s=add:<volumeId>` adds a content-library volume, `pack s=gen:cards52` a shuffled one
+ * - v0.3 `text` s=name|front|back:<text>   type into the add-item / blank-palace fields
+ * - v0.3 `media` s=jpg|glb|fbx  hand the bundled sample (debug assets/media) to the add flow as if picked;
+ *                s=push copies the three samples into the shared Download folder for the real picker
+ * - v0.3 `stick` a=x,y[,ms]     hold the controller stick (x turns the selected model, y pushes the placing spot)
  *
  * Reading back
  * - `dump` (also files/dump.json) · `pose` · `panels` · `planes` · `bounds`
@@ -100,6 +105,29 @@ internal object DebugCommands {
             "planes" -> scene.planeLines().forEach { PalaceLog.i(it) }
             "bounds" -> bounds()
             "park" -> scene.parkPanels()
+            "pack" -> {
+                val arg = s ?: ""
+                when {
+                    arg.startsWith("add:") -> vm.onEvent(PalaceEvent.AddVolume(arg.removePrefix("add:")))
+                    arg.startsWith("gen:") -> vm.onEvent(PalaceEvent.AddGenerated(arg.removePrefix("gen:")))
+                }
+                PalaceLog.i("CMD pack $arg palace=${vm.library.current}")
+            }
+            "text" -> {
+                val field = s?.substringBefore(':') ?: ""
+                val text = s?.substringAfter(':', "") ?: ""
+                when (field) {
+                    "name" -> vm.nameInput.value = text
+                    "front" -> vm.frontInput.value = text
+                    "back" -> vm.backInput.value = text
+                }
+                vm.publish()
+            }
+            "media" -> if (s == "push") PalaceLog.i("CMD media push ${pushMedia(context)}") else pickSample(context, vm, s ?: "jpg")
+            "stick" -> {
+                PalaceGraph.stick.debugHold(nums.getOrElse(0) { 0f }, nums.getOrElse(1) { 0f }, nums.getOrElse(2) { 1500f }.toLong())
+                PalaceLog.i("CMD stick ${PalaceGraph.stick.status()}")
+            }
             else -> PalaceLog.w("CMD unknown '$cmd'")
         }
     }
@@ -180,6 +208,25 @@ internal object DebugCommands {
                 name == "wiki_build" -> PalaceEvent.WikiBuild
                 name == "wiki_retry" -> PalaceEvent.WikiRetry
                 name == "go_poetry" -> PalaceEvent.GoPoetry
+                // v0.3
+                name == "source_library" -> PalaceEvent.SourceLibrary
+                name == "source_blank" -> PalaceEvent.SourceBlank
+                name.startsWith("lib_cat_") -> PalaceEvent.LibraryCategory(name.removePrefix("lib_cat_"))
+                name.startsWith("lib_expand_") -> PalaceEvent.LibraryExpand(name.removePrefix("lib_expand_"))
+                name.startsWith("lib_add_") -> PalaceEvent.AddVolume(name.removePrefix("lib_add_"))
+                name.startsWith("lib_gen_") -> PalaceEvent.AddGenerated(name.removePrefix("lib_gen_"))
+                name == "blank_create" -> PalaceEvent.BlankCreate
+                name == "add_item" -> PalaceEvent.AddItem
+                name == "add_text" -> PalaceEvent.AddText
+                name == "add_group" -> PalaceEvent.AddGroup
+                name == "add_beside" -> PalaceEvent.AddBeside(true)
+                name == "add_on_card" -> PalaceEvent.AddBeside(false)
+                name == "add_done" -> PalaceEvent.AddDone
+                name == "rename" -> PalaceEvent.RenameLocus
+                // the real picker for these: `media` hands the samples over without it
+                name == "add_image" -> PalaceEvent.AddImage
+                name == "add_model" -> PalaceEvent.AddModel
+                name == "place_object" -> PalaceEvent.PlaceObject
                 else -> null
             }
         if (e == null) PalaceLog.w("CMD ui unknown '$name'") else vm.onEvent(e)
@@ -191,7 +238,7 @@ internal object DebugCommands {
      * Spots for [n] loci around the head: [front] (0-based) 0.85 m straight ahead, the rest on a 2.2 m
      * ring away from it (all facing the head, as if on walls); without [front] the ring goes all round.
      */
-    fun spots(scene: PalaceScene, n: Int, front: Int?): List<Spot> {
+    fun spots(scene: PalaceScene, n: Int, front: Int?, frontM: Float = FRONT_M): List<Spot> {
         val head = scene.headPose() ?: HeadPose(Vec3(0f, 1.6f, 0f), Quat4.IDENTITY)
         val floor = scene.floor()
         val y = (head.position.y - 0.1f).coerceIn(floor + 0.95f, floor + 1.7f)
@@ -209,7 +256,7 @@ internal object DebugCommands {
             val at = Vec3(head.position.x + d.x * RING_M, y, head.position.z + d.z * RING_M)
             out[idx] = Spot(at, Vec3(-d.x, 0f, -d.z), SurfaceKind.WALL)
         }
-        if (front != null && front in 0 until n) out[front] = Spot(Vec3(head.position.x + f.x * FRONT_M, y, head.position.z + f.z * FRONT_M), Vec3(-f.x, 0f, -f.z), SurfaceKind.WALL)
+        if (front != null && front in 0 until n) out[front] = Spot(Vec3(head.position.x + f.x * frontM, y, head.position.z + f.z * frontM), Vec3(-f.x, 0f, -f.z), SurfaceKind.WALL)
         return out.filterNotNull()
     }
 
@@ -282,9 +329,36 @@ internal object DebugCommands {
             }
             "S10", "S11" -> seed(vm, scene, null) {
                 vm.debugDue(true)
+                if (id == "S11") {
+                    // v0.3: pinch a locus with nothing due today (only ②'s cards are due): it shakes, 「这里今天不用复习」
+                    vm.debugDueOnly(tree().cardsUnder(tree().loci[1].id).map { it.id }.toSet())
+                }
                 vm.onEvent(PalaceEvent.StartReview)
                 if (id == "S11") later(600) { locusId(vm, 1)?.let { tapLocus(vm, scene, it) } }
                 later(1200) { done(vm, id) }
+            }
+            // v0.3: a far locus (3 m away) opens on a pinch, turned to the viewer and 3x larger
+            "S13F" -> {
+                val n = tree().loci.size
+                vm.debugSeed(spots(scene, n, 1, frontM = 3.0f)) {
+                    vm.debugDue(true)
+                    vm.onEvent(PalaceEvent.StartReview)
+                    later(1000) {
+                        locusId(vm, 2)?.let { tapLocus(vm, scene, it) }
+                        later(1200) { done(vm, id) }
+                    }
+                }
+            }
+            // v0.3 home: a glance at a plaque fades in its peek card (the hover is the system's: QA hovers the
+            // emulator pointer over ①); S13H opens ① from home and turns its first card over
+            "S09H", "S13H" -> seed(vm, scene, 0) {
+                vm.debugDue(true)
+                vm.onEvent(PalaceEvent.DonePlacing)
+                if (id == "S13H") later(600) {
+                    locusId(vm, 1)?.let { tapLocus(vm, scene, it) }
+                    later(800) { vm.state.value.open?.cells?.firstOrNull { !it.group }?.let { cellTap(vm, scene, it.nodeId) } }
+                }
+                later(2000) { done(vm, id) }
             }
             "S12" -> {
                 vm.debugImportText("单卡测试.csv", SINGLE_CSV)
@@ -412,10 +486,9 @@ internal object DebugCommands {
                 vm.onEvent(PalaceEvent.StartRecall)
                 vm.debugRecall(1)
                 later(1500) {
-                    if (vm.state.value.nudge == null) {
-                        locusId(vm, 5)?.let { vm.onEvent(PalaceEvent.NearOther(it)) }
-                    }
-                    done(vm, id)
+                    // v0.3: pinching ⑤ while ② is next: 「先开 ②」
+                    if (vm.state.value.nudge == null) locusId(vm, 5)?.let { tapLocus(vm, scene, it) }
+                    later(400) { done(vm, id) }
                 }
             }
             "S20" -> seed(vm, scene, null) {
@@ -447,8 +520,119 @@ internal object DebugCommands {
                 vm.debugEdit(locusId(vm, 2))
                 done(vm, id)
             }
+            // ---- v0.3: content library, blank palace, add an item
+            "S32", "S32L", "S32H", "S32S", "S32N" -> {
+                vm.onEvent(PalaceEvent.NewPalace)
+                vm.onEvent(PalaceEvent.SourceLibrary)
+                val cat = mapOf("S32L" to "language", "S32H" to "histgeo", "S32S" to "science", "S32N" to "numbers")[id] ?: "poetry"
+                vm.onEvent(PalaceEvent.LibraryCategory(cat))
+                val first = mapOf("poetry" to "tang300", "language" to "words1000", "histgeo" to "capitals", "science" to "elements", "numbers" to "pi")[cat]
+                first?.let { vm.onEvent(PalaceEvent.LibraryExpand(it)) }
+                done(vm, id)
+            }
+            "S32B" -> {
+                // 元素周期表 joins the library -> its home (0 / n loci)
+                vm.onEvent(PalaceEvent.AddVolume("elements-1"))
+                done(vm, id)
+            }
+            "S33" -> {
+                vm.onEvent(PalaceEvent.NewPalace)
+                vm.onEvent(PalaceEvent.SourceBlank)
+                vm.nameInput.value = "我的单词"
+                vm.publish()
+                done(vm, id)
+            }
+            "S34", "S35", "S36", "S37", "S37B", "S37T", "S38", "S36D", "S37D" -> blankWithLocus(vm, scene) {
+                vm.onEvent(PalaceEvent.AddItem)
+                when (id) {
+                    "S35" -> {
+                        vm.onEvent(PalaceEvent.AddText)
+                        vm.frontInput.value = "photosynthesis"
+                        vm.backInput.value = "光合作用"
+                        vm.publish()
+                        done(vm, id)
+                    }
+                    "S36", "S36D" -> {
+                        pickSample(context, vm, "jpg")
+                        later(1500) {
+                            if (id == "S36D") {
+                                vm.backInput.value = "F 和向上的箭头"
+                                vm.onEvent(PalaceEvent.AddDone)
+                            }
+                            later(1500) { done(vm, id) }
+                        }
+                    }
+                    "S37", "S37B", "S37D", "S37T" -> {
+                        if (id == "S37B" || id == "S37D") vm.onEvent(PalaceEvent.AddBeside(id == "S37B"))
+                        pickSample(context, vm, "glb")
+                        whenModelReady(vm, 20) {
+                            if (id != "S37") {
+                                vm.nameInput.value = "箭头模型"
+                                vm.onEvent(PalaceEvent.AddDone)
+                            }
+                            // S37T: the stick turns the new (selected) model by 90 degrees (120 deg/s for 0.75 s)
+                            if (id == "S37T") PalaceGraph.stick.debugHold(1f, 0f, 750)
+                            later(2500) { done(vm, id) }
+                        }
+                    }
+                    "S38" -> {
+                        pickSample(context, vm, "fbx")
+                        later(1200) { done(vm, id) }
+                    }
+                    else -> done(vm, id)
+                }
+            }
             else -> PalaceLog.w("CMD state unknown $id")
         }
+    }
+
+    /** A blank palace 「我的单词」 with 「位置 1」 pinned 0.85 m ahead, placing, the locus open (S34's ground). */
+    private fun blankWithLocus(vm: PalaceViewModel, scene: PalaceScene, then: () -> Unit) {
+        vm.debugRemoveBlank()
+        vm.onEvent(PalaceEvent.NewPalace)
+        vm.onEvent(PalaceEvent.SourceBlank)
+        vm.nameInput.value = "我的单词"
+        vm.onEvent(PalaceEvent.BlankCreate)
+        seed(vm, scene, 0) {
+            vm.onEvent(PalaceEvent.StartPlacing)
+            later(600) {
+                locusId(vm, 1)?.let { tapLocus(vm, scene, it) }
+                later(600) { then() }
+            }
+        }
+    }
+
+    /** Runs [then] once the picked model has loaded (the emulator renders at ~1 fps: loading takes seconds). */
+    private fun whenModelReady(vm: PalaceViewModel, triesLeft: Int, then: () -> Unit) {
+        if (vm.state.value.add?.modelReady == true || triesLeft <= 0) then() else later(500) { whenModelReady(vm, triesLeft - 1, then) }
+    }
+
+    /** Hands a bundled sample to the add flow as the picker would (a copy in the cache). */
+    private fun pickSample(context: Context, vm: PalaceViewModel, ext: String) {
+        val name = "sample.$ext"
+        val out = File(context.cacheDir, "picked-debug-$ext")
+        runCatching { context.assets.open("media/$name").use { i -> out.outputStream().use { i.copyTo(it) } } }.onFailure { return PalaceLog.w("CMD media $name: $it") }
+        vm.debugMediaStep(model = ext != "jpg")
+        vm.onEvent(PalaceEvent.MediaPicked(out, name))
+        PalaceLog.i("CMD media picked $name bytes=${out.length()}")
+    }
+
+    /** The three samples into the shared Download folder (MediaStore; no storage permission needed for own files). */
+    private fun pushMedia(context: Context): String {
+        val r = context.contentResolver
+        val done = ArrayList<String>()
+        for (name in listOf("sample.jpg", "sample.glb", "sample.fbx")) {
+            runCatching {
+                val values = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.Downloads.DISPLAY_NAME, name)
+                    put(android.provider.MediaStore.Downloads.MIME_TYPE, if (name.endsWith("jpg")) "image/jpeg" else "application/octet-stream")
+                }
+                val uri = r.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: error("insert")
+                r.openOutputStream(uri)?.use { o -> context.assets.open("media/$name").use { it.copyTo(o) } }
+                done += name
+            }.onFailure { PalaceLog.w("CMD media push $name: $it") }
+        }
+        return done.joinToString(",")
     }
 
     // -------------------------------------------------------------------------------- import samples
@@ -492,6 +676,9 @@ internal object DebugCommands {
                 .put("review", s.review?.let { "${it.done}/${it.total}" })
                 .put("recall", s.recall?.let { "${it.number}/${it.lociTotal} revealed=${it.revealed}" })
                 .put("today", vm.todayIndex)
+                .put("add", s.add?.let { "${it.step} ready=${it.modelReady} err=${it.error} beside=${it.beside}" })
+                .put("models", JSONArray(s.models.map { "${it.nodeId}:beside=${it.beside}:shown=${it.shown}:yaw=${"%.0f".format(Locale.US, it.yawDeg)}" }))
+                .put("selectedModel", s.selectedModel)
                 .put(
                     "loci",
                     JSONArray(

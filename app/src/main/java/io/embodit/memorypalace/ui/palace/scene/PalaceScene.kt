@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import com.pico.spatial.core.container.SpatialViewContent
 import com.pico.spatial.core.ecs.CollisionComponent
 import com.pico.spatial.core.ecs.Entity
+import com.pico.spatial.core.ecs.HoverEffectComponent
 import com.pico.spatial.core.ecs.InteractableComponent
 import com.pico.spatial.core.ecs.SceneUpdateContext
 import com.pico.spatial.core.ecs.System
@@ -29,10 +30,9 @@ import io.embodit.memorypalace.domain.PlaneSurface
 import io.embodit.memorypalace.domain.Quat4
 import io.embodit.memorypalace.domain.Spot
 import io.embodit.memorypalace.domain.SurfaceKind
+import io.embodit.memorypalace.domain.Readability
 import io.embodit.memorypalace.domain.Vec3
-import io.embodit.memorypalace.domain.Wake
 import io.embodit.memorypalace.domain.flatDistance
-import io.embodit.memorypalace.domain.raycast
 import io.embodit.memorypalace.platform.PalaceGraph
 import io.embodit.memorypalace.platform.PalaceLog
 import io.embodit.memorypalace.ui.palace.LocusUi
@@ -79,7 +79,9 @@ object PanelIds {
     const val NUDGE = "nudge"
     const val EDIT = "edit"
     const val CELLS = 8
-    const val LABELS = 6
+
+    /** v0.3: every locus keeps its name plate (design `spatialLayout.labels`), a palace has at most 20. */
+    const val LABELS = 20
 
     fun cell(i: Int) = "cell$i"
 
@@ -88,16 +90,20 @@ object PanelIds {
     val pool: List<String> = listOf(POCKET, LIBRARY, SETTINGS, TITLE, NUDGE, EDIT) + (0 until CELLS).map { cell(it) } + (0 until LABELS).map { label(it) }
 }
 
-/** What a distance label says (design `entities3d.locusDot.lod`, 1 - 3 m). */
-data class LabelUi(val number: Int, val title: String, val decimetres: Int, val due: Int, val placing: Boolean, val cards: Int)
+/**
+ * A locus name plate (v0.3 design `spatialLayout.labels`): number + name + due badge, never a distance; under
+ * it the peek card that the system's hover fades in (design `interactionModel.hover.peek`).
+ */
+data class LabelUi(val nodeId: String, val number: Int, val title: String, val due: Int, val placing: Boolean, val cards: Int, val peek: String, val peekImage: String?)
 
 /**
  * The 3D side of the app (design `entities3d`): lantern dots, plaques, the thread of memory, the open
- * locus (title + grid of cards), the reticle and the pre-built panel pool. It starts and stops the
- * sensing (planes, head, anchors) and turns system pinches into events. Per-frame work (wake distance,
- * reticle, panel placement, slide / flip / breathing animations) happens in [onFrame], never through
- * Compose: the Compose state written here is which panel is in view, the six distance labels and the
- * distance to the next locus, each on change only. Main thread only.
+ * locus (title + grid of cards), 3D memory objects, the reticle and the pre-built panel pool. It starts and
+ * stops the sensing (head, anchors, controller sticks) and turns system pinches into events. Per-frame work
+ * (reticle, stick turn / push, panel placement, readability scale, slide / flip / breathing animations)
+ * happens in [onFrame], never through Compose: the Compose state written here is which panel is in view and
+ * the name plates, each on change only. v0.3: nothing here measures distance to open anything (design
+ * `interactionModel.hardRule`); a locus opens on a pinch at any distance. Main thread only.
  */
 class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
 
@@ -106,9 +112,6 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
 
     /** Label slot -> what it says (absent: hidden). */
     val labels = mutableStateMapOf<Int, LabelUi>()
-
-    /** Head to the target locus, horizontal, in decimetres (-1: none). */
-    val targetDecimetres = mutableIntStateOf(-1)
 
     /** Bumped to make `SpatialView.update` run again while panel entities are still missing. */
     val bindTick = mutableIntStateOf(0)
@@ -132,6 +135,10 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
     private var titlePin: Box? = null
     private val cellBoards = ArrayList<Box>()
     private var reticle: Reticle? = null
+    private var models: ModelViews? = null
+    private val stick = PalaceGraph.stick
+    private var placeDistance = PlaceRules.FREE_DISTANCE
+    private var lastFrameMs = 0L
     private var built = false
     private var attached = false
     private var paused = false
@@ -145,8 +152,6 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
 
     private var floorY: Float? = null
     private var usable = -1
-    private var lastWake: String? = null
-    private var lastNear: String? = null
     private var lastAim: BlockReason? = BlockReason.NO_SURFACE
     private var aimSent = false
     private var openKey = ""
@@ -196,6 +201,7 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         for (i in 0 until PanelIds.CELLS) rig.world(PanelIds.cell(i), PanelSizes.CELL_W, PanelSizes.CELL_H, 1f)
         for (i in 0 until PanelIds.LABELS) rig.world(PanelIds.label(i), PanelSizes.LABEL_W, PanelSizes.LABEL_H, 1f)
         head.start()
+        stick.start()
         ActiveScene.scene = this
         attached = true
         bindPanels(attachments)
@@ -233,6 +239,7 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         titlePin = Box(root, meshes.sphere, m.brass, "titlePin").also { it.show(false) }
         repeat(PanelIds.CELLS) { i -> cellBoards += Box(root, meshes.cube, m.porcelain, "cellBoard$i").also { it.show(false) } }
         reticle = Reticle(root, meshes, m)
+        models = ModelViews(root, meshes, m, scope!!, sink)
         yield()
         built = true
         PalaceLog.i("SCENE built ms=${SystemClock.elapsedRealtime() - t0}")
@@ -260,6 +267,7 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         if (paused || !attached) return
         paused = true
         head.stop()
+        stick.stop()
         PalaceLog.i("SCENE paused")
     }
 
@@ -267,6 +275,7 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         if (!paused || !attached) return
         paused = false
         head.start()
+        stick.start()
         startSensing()
         PalaceLog.i("SCENE resumed")
     }
@@ -290,6 +299,9 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         scope?.cancel()
         scope = null
         head.stop()
+        stick.stop()
+        models?.destroy()
+        models = null
         PalaceGraph.anchors.onUpdated = null
         PalaceGraph.anchors.stop()
         panelShown.clear()
@@ -350,12 +362,11 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         val nowFlipped = (state.open?.cells.orEmpty() + listOfNotNull(state.open?.single)).filter { it.flipped }.map { it.nodeId }.toSet()
         for (id in nowFlipped - flippedIds) flipStart[id] = SystemClock.elapsedRealtime()
         flippedIds = nowFlipped
-        if (state.nudge?.kind == NudgeKind.TOO_FAR && before.nudge != state.nudge) {
+        if (state.nudge?.kind == NudgeKind.NOTHING_DUE && before.nudge != state.nudge) {
             shakeStartMs = SystemClock.elapsedRealtime()
             shakeTarget = state.nudge.targetId
         }
-        if (state.open?.locusId != before.open?.locusId) lastWake = state.open?.locusId
-        if (state.mode != Mode.RECALL) lastNear = null
+        if (state.mode != Mode.PLACING) placeDistance = PlaceRules.FREE_DISTANCE
         if (!state.aiming) {
             reticle?.hide()
             aimSent = false
@@ -379,13 +390,16 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         rig.onFrame(now)
         rig.stowBehind(pose)
         if (!attached || paused) return
+        val dt = if (lastFrameMs == 0L) 0f else ((now - lastFrameMs) / 1000f).coerceIn(0f, 0.1f)
+        lastFrameMs = now
         if (built && hasHead) {
-            wake()
             drawLoci(now)
             drawThreads()
             drawOpen(now)
             drawLabels()
+            pushPull(now, dt)
             aim()
+            drawModels(now, dt)
         }
         if (hasHead) placePanels(now)
         rig.faceViewer(pose.position)
@@ -399,38 +413,17 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
 
     private fun foundLoci(): List<LocusUi> = ui.loci.filter { it.found }
 
-    /** Wake rule (design `wakeDistance`, T3): only in review / recall; reported on change. */
-    private fun wake() {
-        val session = ui.mode == Mode.REVIEW || ui.mode == Mode.RECALL
-        val loci = foundLoci()
-        if (session && ui.popup == null && ui.confirm == null) {
-            val pick = Wake.pick(loci.map { locus(it) }, ui.wakeCandidates, ui.open?.locusId, pose)
-            if (pick != lastWake) {
-                lastWake = pick
-                sink(PalaceEvent.LocusWoke(pick))
-            }
-        }
-        if (ui.mode == Mode.RECALL) {
-            val other =
-                loci.filter { it.nodeId !in ui.wakeCandidates && it.tone != LocusUi.Tone.DONE }
-                    .filter { flatDistance(it.position, pose.position) <= Wake.OPEN_M && Wake.facing(locus(it), pose.position) }
-                    .minByOrNull { flatDistance(it.position, pose.position) }?.nodeId
-            if (other != lastNear) {
-                lastNear = other
-                sink(PalaceEvent.NearOther(other))
-            }
-        }
-        val target = ui.targetLocus?.let { id -> loci.firstOrNull { it.nodeId == id } }
-        val dm = target?.let { (flatDistance(it.position, pose.position) * 10f).roundToInt() } ?: -1
-        if (dm != targetDecimetres.intValue) targetDecimetres.intValue = dm
+    /**
+     * The plaque frame of a locus (design `spatialLayout.orientation`): it stands upright and turns about the
+     * vertical to the viewer every frame (yaw billboard), so it reads from anywhere in the room.
+     */
+    private fun frameOf(l: LocusUi): PanelFacing {
+        val to = pose.position - l.position
+        return if (to.x * to.x + to.z * to.z < 1e-6f) PanelFacing(atan2(l.normal.x, l.normal.z), 0f) else PanelFacing(atan2(to.x, to.z), 0f)
     }
 
-    /** The plaque frame of a locus: wall loci face out of the wall; table loci lean back 30 degrees and turn to the viewer. */
-    private fun frameOf(l: LocusUi): PanelFacing =
-        if (l.surface == SurfaceKind.TABLE) {
-            val to = pose.position - l.position
-            PanelFacing(atan2(to.x, to.z), TABLE_TILT_RAD)
-        } else PanelFacing(atan2(l.normal.x, l.normal.z), 0f)
+    /** v0.3 readability (design `interactionModel.click.readability`): an open locus grows with its distance, <= 5x. */
+    private fun scaleOf(l: LocusUi): Float = Readability.scale(flatDistance(l.position, pose.position))
 
     private fun drawLoci(now: Long) {
         val m = materials ?: return
@@ -448,7 +441,7 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
                     LocusUi.Tone.DONE -> m.jade
                     LocusUi.Tone.DIM -> m.dim
                 }
-            v.draw(at, f, ui.palaceColor, dotMat, breathe, showDot = !isOpen, showPlaque = placing || (ui.mode == Mode.HOME && flatDistance(l.position, pose.position) <= Wake.LABEL_M), halo = l.tone == LocusUi.Tone.NEXT)
+            v.draw(at, f, ui.palaceColor, dotMat, breathe, showDot = !isOpen, showPlaque = !isOpen, halo = l.tone == LocusUi.Tone.NEXT)
         }
     }
 
@@ -485,7 +478,7 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
     private fun threadEnd(l: LocusUi): Vec3 {
         val open = ui.open
         if (open == null || open.locusId != l.nodeId || open.cells.isEmpty()) return l.position
-        return l.position + frameOf(l).up * (TITLE_RISE_M + PanelSizes.TITLE_H * DP_M / 2f)
+        return l.position + frameOf(l).up * ((TITLE_RISE_M + PanelSizes.TITLE_H * DP_M / 2f) * scaleOf(l))
     }
 
     /** Title + grid of the open locus (design `nesting.layout`), with the slide-out and the flip. */
@@ -505,20 +498,21 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
             return
         }
         val f = frameOf(l)
+        val k = scaleOf(l)
         val rot = f.rotation
         val n = f.normal
         val up = f.up
         val right = f.right
         val grid = open.cells.isNotEmpty()
-        val titleAt = l.position + (if (grid) up * TITLE_RISE_M else Vec3.ZERO)
+        val titleAt = l.position + (if (grid) up * (TITLE_RISE_M * k) else Vec3.ZERO)
         val slide = ((now - openStartMs) / SLIDE_MS).coerceIn(0f, 1f).let { 1f - (1f - it) * (1f - it) }
         val title = rig[PanelIds.TITLE]
         title?.orient(rot)
         val titleCell = open.single
         val kx = titleCell?.let { flipScale(it.nodeId, now) } ?: 1f
-        title?.show(l.position.lerp(titleAt, slide) + n * PANEL_OUT_M, kx, 1f)
-        titleBoard?.place(l.position.lerp(titleAt, slide) - n * 0.002f, Vec3(PanelSizes.TITLE_W * DP_M * kx, PanelSizes.TITLE_H * DP_M, BOARD_M), rot)
-        titlePin?.place(l.position.lerp(titleAt, slide) + up * (PanelSizes.TITLE_H * DP_M / 2f - 0.012f) + n * 0.012f, Vec3(PIN_M, PIN_M, PIN_M))
+        title?.show(l.position.lerp(titleAt, slide) + n * (PANEL_OUT_M * k), kx * k, k)
+        titleBoard?.place(l.position.lerp(titleAt, slide) - n * (0.002f * k), Vec3(PanelSizes.TITLE_W * DP_M * kx * k, PanelSizes.TITLE_H * DP_M * k, BOARD_M * k), rot)
+        titlePin?.place(l.position.lerp(titleAt, slide) + up * ((PanelSizes.TITLE_H * DP_M / 2f - 0.012f) * k) + n * (0.012f * k), Vec3(PIN_M * k, PIN_M * k, PIN_M * k))
         val count = open.cells.size
         val centers = ArrayList<Vec3>()
         for (i in 0 until PanelIds.CELLS) {
@@ -532,23 +526,30 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
             val row = i / 4
             val inRow = if (row == 0) minOf(4, count) else count - 4
             val col = i % 4
-            val x = (col - (inRow - 1) / 2f) * CELL_PITCH_X
-            val y = -ROW0_M - row * CELL_PITCH_Y
+            val x = (col - (inRow - 1) / 2f) * CELL_PITCH_X * k
+            val y = (-ROW0_M - row * CELL_PITCH_Y) * k
             val target = l.position + right * x + up * y
             val at = l.position.lerp(target, slide)
             centers += at
-            val k = flipScale(c.nodeId, now)
+            val fx = flipScale(c.nodeId, now)
             slot?.orient(rot)
-            slot?.show(at + n * PANEL_OUT_M, k, 1f)
-            cellBoards.getOrNull(i)?.place(at - n * 0.002f, Vec3(PanelSizes.CELL_W * DP_M * k, PanelSizes.CELL_H * DP_M, BOARD_M * 0.75f), rot)
+            slot?.show(at + n * (PANEL_OUT_M * k), fx * k, k)
+            cellBoards.getOrNull(i)?.place(at - n * (0.002f * k), Vec3(PanelSizes.CELL_W * DP_M * fx * k, PanelSizes.CELL_H * DP_M * k, BOARD_M * 0.75f * k), rot)
         }
+        openCenters = centers
+        openFrame = f
+        openScale = k
         // the 2 mm thread through ① ② ③ … (only once the grid has slid out)
         for (i in gridThreads.indices) {
             val a = centers.getOrNull(i)
             val b = centers.getOrNull(i + 1)
-            if (a == null || b == null || slide < 1f) gridThreads[i].show(false) else gridThreads[i].rod(a + n * 0.001f, b + n * 0.001f, GRID_THREAD_M)
+            if (a == null || b == null || slide < 1f) gridThreads[i].show(false) else gridThreads[i].rod(a + n * 0.001f, b + n * 0.001f, GRID_THREAD_M * k)
         }
     }
+
+    private var openCenters: List<Vec3> = emptyList()
+    private var openFrame: PanelFacing? = null
+    private var openScale = 1f
 
     /** Horizontal scale of a card turning over (about its vertical axis, 0.35 s): edge-on half way. */
     private fun flipScale(id: String, now: Long): Float {
@@ -561,34 +562,76 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         return abs(cos(PI.toFloat() * t)).coerceAtLeast(0.02f)
     }
 
-    /** Distance labels on the nearest six loci between 1 and 3 m (and every placed locus nearby while placing). */
+    /**
+     * Name plates (v0.3): every found locus but the open one keeps "② 秦汉" + its due badge above the plaque,
+     * with the hover peek card under it; a pinch on the plate opens the locus like one on the plaque. Plates
+     * grow a little with distance so a name reads across the room. Never a distance on them.
+     */
     private fun drawLabels() {
         val rig = rig ?: return
         val placing = ui.mode == Mode.PLACING
-        val shown =
-            foundLoci().asSequence()
-                .filter { it.nodeId != ui.open?.locusId }
-                .map { it to flatDistance(it.position, pose.position) }
-                .filter { (_, d) -> d <= Wake.LABEL_M && (placing || d > Wake.OPEN_M || ui.mode == Mode.HOME) }
-                .sortedBy { it.second }
-                .take(PanelIds.LABELS)
-                .toList()
+        val shown = foundLoci().filter { it.nodeId != ui.open?.locusId }.take(PanelIds.LABELS)
         for (i in 0 until PanelIds.LABELS) {
             val slot = rig[PanelIds.label(i)]
-            val e = shown.getOrNull(i)
-            if (e == null || ui.popup != null) {
+            val l = shown.getOrNull(i)
+            if (l == null || ui.popup == Popup.ADD_ITEM) {
                 slot?.hide()
                 if (labels.containsKey(i)) labels.remove(i)
                 continue
             }
-            val (l, d) = e
-            val label = LabelUi(l.number, l.title, (d * 10f).roundToInt(), l.due, placing, l.cards)
+            val label = LabelUi(l.nodeId, l.number, l.title, l.due, placing, l.cards, l.peek, l.peekImage)
             if (labels[i] != label) labels[i] = label
-            val k = (LABEL_K * pose.position.distanceTo(l.position)).coerceIn(0.6f, 1.6f)
+            val k = (LABEL_K * pose.position.distanceTo(l.position)).coerceIn(1.1f, 2.4f)
             val f = frameOf(l)
-            val lift = if (placing) PanelSizes.TITLE_H * DP_M / 2f + 0.03f else 0.05f
-            slot?.show(l.position + f.up * (lift + PanelSizes.LABEL_H * DP_M * k / 2f) + f.normal * 0.02f, k, k)
+            // the plate's name row sits just above the plaque; the peek card hangs below that row, over the plaque
+            val lift = PLAQUE_H / 2f + 0.02f
+            slot?.orient(f.rotation)
+            slot?.show(l.position + f.up * (lift + (PanelSizes.LABEL_ROW_H - PanelSizes.LABEL_H / 2f) * DP_M * k) + f.normal * 0.03f, k, k)
         }
+    }
+
+    /** Placing: the stick's Y pushes the spot out / pulls it in, 0.6 - 2.0 m (design `spatialLayout.placement.distance`). */
+    private fun pushPull(now: Long, dt: Float) {
+        if (!ui.aiming) return
+        val y = stick.y(now)
+        if (abs(y) < STICK_DEAD) return
+        placeDistance = (placeDistance + y * PUSH_M_PER_S * dt).coerceIn(PlaceRules.MIN_DISTANCE, PlaceRules.MAX_DISTANCE)
+    }
+
+    /** 3D memory objects; the selected one turns with the stick's X (design D1) and its yaw is saved at rest. */
+    private fun drawModels(now: Long, dt: Float) {
+        val mv = models ?: return
+        val selected = ui.selectedModel
+        val x = if (selected != null && ui.popup == null) stick.x(now) else 0f
+        if (selected != null) mv.turn(selected, if (abs(x) < STICK_DEAD) 0f else x * TURN_DEG_PER_S * dt)
+        val loci = foundLoci().associateBy { it.nodeId }
+        mv.frame(ui.models, selected, ui.pendingModel) { m ->
+            val l = loci[m.locusId] ?: return@frame null
+            val f = frameOf(l)
+            if (m.beside) besideSpot(l, f) else {
+                val c = openCenters.getOrNull(m.cell) ?: return@frame null
+                val of = openFrame ?: f
+                ModelSpot(c + of.up * ((PanelSizes.CELL_H * DP_M / 2f + 0.07f) * openScale) + of.normal * (0.04f * openScale), of.yaw, ModelViews.ON_CARD_M * openScale)
+            }
+        }
+        // S37 preview: the picked model stands beside the locus being edited until it is added
+        mv.preview(ui.pendingModel) {
+            val l = ui.open?.let { o -> loci[o.locusId] } ?: return@preview null
+            besideSpot(l, frameOf(l))
+        }
+    }
+
+    /**
+     * A memory object stands on the right of its plaque, base level with the plaque's bottom edge; while its
+     * locus is open it steps out past the right edge of the grid so it never covers a card.
+     */
+    private fun besideSpot(l: LocusUi, f: PanelFacing): ModelSpot {
+        var edge = PLAQUE_W / 2f
+        if (ui.open?.locusId == l.nodeId) {
+            val cells = openCenters.maxOfOrNull { (it - l.position).dot(f.right) }?.plus(PanelSizes.CELL_W * DP_M * openScale / 2f)
+            edge = maxOf(edge, cells ?: 0f, PanelSizes.TITLE_W * DP_M * openScale / 2f)
+        }
+        return ModelSpot(l.position + f.right * (edge + 0.04f + ModelViews.BESIDE_M / 2f) + f.up * (-PLAQUE_H / 2f + ModelViews.BESIDE_M / 2f), f.yaw, ModelViews.BESIDE_M)
     }
 
     /**
@@ -598,8 +641,11 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
     private fun aim() {
         if (!ui.aiming) return
         val r = reticle ?: return
-        val (spot, block) = evaluate(pose.forward)
-        r.draw(spot.position, spot.normal, block == null, PlaceRules.FREE_DISTANCE * RETICLE_K)
+        // design D1: the reticle follows the controller ray; without a controller (hands, eyes) it falls back to the
+        // view direction as a preview only (the system keeps the gaze to itself): the pinch pins along its own ray
+        val ray = stick.aim()
+        val (spot, block) = if (ray != null) evaluateRay(ray.position, ray.forward) else evaluate(pose.forward)
+        r.draw(spot.position, spot.normal, block == null, placeDistance * RETICLE_K)
         if (!aimSent || block != lastAim) {
             aimSent = true
             lastAim = block
@@ -607,9 +653,16 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         }
     }
 
+    /** The spot [placeDistance] along a controller ray, its height kept in the eyes' band as a gaze spot is. */
+    private fun evaluateRay(origin: Vec3, dir: Vec3): Pair<Spot, BlockReason?> {
+        val hit = origin + dir.normalized() * placeDistance
+        val spot = PlaceRules.free(pose.position, hit - pose.position, (hit - pose.position).length)
+        return spot to PlaceRules.checkFree(spot, foundLoci().map { it.position }, ui.loci.size)
+    }
+
     /** The free spot along [dir] from the eyes and why it cannot take a locus (null: it can). */
     private fun evaluate(dir: Vec3): Pair<Spot, BlockReason?> {
-        val spot = PlaceRules.free(pose.position, dir)
+        val spot = PlaceRules.free(pose.position, dir, placeDistance)
         return spot to PlaceRules.checkFree(spot, foundLoci().map { it.position }, ui.loci.size)
     }
 
@@ -665,18 +718,13 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         val at: Vec3? =
             if (l != null) {
                 val f = frameOf(l)
-                val lift = if (ui.open?.locusId == l.nodeId && ui.open?.cells?.isNotEmpty() == true) TITLE_RISE_M + PanelSizes.TITLE_H * DP_M / 2f + 0.04f else 0.12f
-                l.position + f.up * lift + f.normal * 0.03f
+                val lift = if (ui.open?.locusId == l.nodeId && ui.open?.cells?.isNotEmpty() == true) (TITLE_RISE_M + PanelSizes.TITLE_H * DP_M / 2f + 0.04f) * scaleOf(l) else PLAQUE_H / 2f + (PanelSizes.LABEL_ROW_H + 30f) * DP_M
+                l.position + f.up * lift + f.normal * 0.05f
             } else {
                 val idx = ui.open?.cells?.indexOfFirst { it.nodeId == n.targetId } ?: -1
                 val ol = ui.open?.let { o -> foundLoci().firstOrNull { it.nodeId == o.locusId } }
-                if (idx >= 0 && ol != null) {
-                    val f = frameOf(ol)
-                    val count = ui.open!!.cells.size
-                    val row = idx / 4
-                    val inRow = if (row == 0) minOf(4, count) else count - 4
-                    ol.position + f.right * ((idx % 4 - (inRow - 1) / 2f) * CELL_PITCH_X) + f.up * (-ROW0_M - row * CELL_PITCH_Y + 0.085f) + f.normal * 0.03f
-                } else null
+                val c = openCenters.getOrNull(idx)
+                if (c != null && ol != null) c + frameOf(ol).up * (0.085f * openScale) + frameOf(ol).normal * (0.03f * openScale) else null
             }
         if (at == null) slot.hide() else slot.show(at)
     }
@@ -691,20 +739,29 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
             return
         }
         val f = frameOf(l)
-        slot.show(l.position - f.up * (PanelSizes.TITLE_H * DP_M / 2f + 0.04f) + f.normal * 0.02f)
+        // under the plaque, or under the open grid
+        val below = if (ui.open?.locusId == l.nodeId) (openCenters.minOfOrNull { (it - l.position).dot(f.up) } ?: 0f) - PanelSizes.CELL_H * DP_M * openScale / 2f - 0.05f else -(PanelSizes.TITLE_H * DP_M / 2f + 0.04f)
+        slot.orient(f.rotation)
+        slot.show(l.position + f.up * below + f.normal * 0.02f)
     }
 
     // =========================================================================================
     // input: system pinches
     // =========================================================================================
 
-    /** A pinch on a card or the title (Compose click inside a pooled panel): the distance check is the scene's. */
+    /** A pinch on a card or the title (Compose click inside a pooled panel); the distance is only logged. */
     fun cellTapped(id: String) {
         sink(PalaceEvent.CellTapped(id, openDistance()))
     }
 
     fun titleTapped() {
         sink(PalaceEvent.TitleTapped(openDistance()))
+    }
+
+    /** A pinch on a name plate opens its locus, as one on the plaque would. */
+    fun labelTapped(nodeId: String) {
+        val l = foundLoci().firstOrNull { it.nodeId == nodeId } ?: return
+        sink(PalaceEvent.LocusTapped(nodeId, flatDistance(l.position, pose.position)))
     }
 
     private fun openDistance(): Float {
@@ -717,7 +774,12 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         val name = runCatching { target?.getName() }.getOrNull() ?: "none"
         val stage = toStage(value.position.x, value.position.y, value.position.z)
         val locusId = target?.let { t -> views.entries.firstOrNull { it.value.owns(t) }?.key }
+        val modelId = target?.let { models?.owner(it) }
         when {
+            modelId != null -> {
+                PalaceLog.i("TAP model id=$modelId")
+                sink(PalaceEvent.ModelTapped(modelId))
+            }
             locusId != null -> {
                 val l = foundLoci().firstOrNull { it.nodeId == locusId } ?: return
                 val d = flatDistance(l.position, pose.position)
@@ -729,7 +791,9 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
                 if (ui.mode != Mode.PLACING) return
                 // the pinch hit the far shell: the locus floats 1.2 m along that direction (the gaze, or the ray)
                 val dir = stage?.let { it - pose.position }?.takeIf { it.length > 0.1f } ?: pose.forward
-                val (spot, block) = evaluate(dir)
+                // a controller in hand pins where its reticle shows (design D1); a hand pinch along the gaze / ray it hit
+                val ray = stick.aim()
+                val (spot, block) = if (ray != null) evaluateRay(ray.position, ray.forward) else evaluate(dir)
                 sink(PalaceEvent.PlaceTapped(spot, block))
             }
             else -> PalaceLog.i("TAP other target=$name stage=${PalaceLog.pos(stage)}")
@@ -787,7 +851,12 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         const val SLIDE_MS = 250f
         const val FLIP_MS = 350f
         const val SHAKE_MS = 350L
-        const val LABEL_K = 0.45f
+        const val LABEL_K = 0.6f
+        const val PLAQUE_W = 0.22f
+        const val PLAQUE_H = 0.14f
+        const val STICK_DEAD = 0.15f
+        const val PUSH_M_PER_S = 0.8f
+        const val TURN_DEG_PER_S = 120f
         const val RETICLE_K = 0.5f
         const val TABLE_TILT_RAD = 0.5235988f
         const val DEFAULT_EYE_M = 1.6f
@@ -818,6 +887,10 @@ internal class LocusView(parent: Entity, meshes: PalaceMeshes, private val m: Pa
         runCatching { collider.setName("locusHit:$id") }
         collider.components.set(CollisionComponent(collisionShape = listOf(ShapeResource.createBox(Vector3(0.24f, 0.16f, 0.05f))), physicsMaterial = PhysicsMaterialResource()))
         collider.components.set(InteractableComponent())
+        // v0.3: the system highlights what the eyes or the ray rest on (design `interactionModel.hover`)
+        runCatching { collider.components.set(HoverEffectComponent()) }
+        runCatching { plaque.entity.components.set(HoverEffectComponent()) }
+        runCatching { dot.entity.components.set(HoverEffectComponent()) }
         group.addChild(collider)
     }
 

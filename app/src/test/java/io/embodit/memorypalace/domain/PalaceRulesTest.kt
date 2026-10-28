@@ -175,10 +175,9 @@ class PalaceRulesTest {
         assertEquals(BlockReason.TOO_CLOSE, PlaceRules.checkFree(ahead, listOf(Vec3(0.5f, 1.6f, -1.2f)), 0))
         assertEquals(BlockReason.TOO_FAR_FROM_ROUTE, PlaceRules.checkFree(ahead, listOf(Vec3(0f, 1.6f, 4.5f)), 0))
         assertEquals(BlockReason.LIMIT, PlaceRules.checkFree(ahead, emptyList(), Limits.ANCHORED_LOCI_PER_APP))
-        // a free locus wakes from its front, as a wall locus does
-        val l = Locus("a", "p", "x", 0, ahead.position, ahead.normal, ahead.surface)
-        assertTrue(Wake.facing(l, Vec3(0f, 1.6f, -0.4f)))
-        assertFalse(Wake.facing(l, Vec3(0f, 1.6f, -2.0f)))
+        // v0.3: the stick pushes the spot out to 2.0 m and pulls it in to 0.6 m, no further
+        assertEquals(-2.0f, PlaceRules.free(eye, Vec3(0f, 0f, -1f), 3.5f).position.z, 1e-4f)
+        assertEquals(-0.6f, PlaceRules.free(eye, Vec3(0f, 0f, -1f), 0.1f).position.z, 1e-4f)
     }
 
     @Test
@@ -189,32 +188,14 @@ class PalaceRulesTest {
         assertTrue(hit.normal.z > 0f)
     }
 
-    // ---------------------------------------------------------------- wake
-
-    private fun locus(id: String, x: Float, z: Float, normal: Vec3 = Vec3(0f, 0f, 1f)) = Locus(id, "p", "a", 0, Vec3(x, 1.3f, z), normal, SurfaceKind.WALL)
-
-    private fun head(x: Float, z: Float) = HeadPose(Vec3(x, 1.6f, z), Quat4.IDENTITY)
+    // ---------------------------------------------------------------- v0.3 readability (no walking)
 
     @Test
-    fun wakeHysteresisAndFacing() {
-        val a = locus("a", 0f, -2f)
-        assertEquals("a", Wake.pick(listOf(a), setOf("a"), null, head(0f, -1.1f)))
-        assertNull(Wake.pick(listOf(a), setOf("a"), null, head(0f, -0.9f)))
-        // open stays open up to 1.2 m, closes beyond
-        assertEquals("a", Wake.pick(listOf(a), setOf("a"), "a", head(0f, -0.85f)))
-        assertNull(Wake.pick(listOf(a), setOf("a"), "a", head(0f, -0.7f)))
-        // behind the wall: no wake
-        assertNull(Wake.pick(listOf(a), setOf("a"), null, head(0f, -2.5f)))
-        // not a candidate: no wake
-        assertNull(Wake.pick(listOf(a), emptySet(), null, head(0f, -1.1f)))
-    }
-
-    @Test
-    fun wakePrefersTheOneLookedAtThenTheNearest() {
-        val a = locus("a", -0.5f, -1.5f)
-        val b = locus("b", 0.4f, -1.5f)
-        assertEquals("a", Wake.pick(listOf(a, b), setOf("a", "b"), null, head(-0.45f, -0.7f)))
-        assertEquals(0.6f, Wake.closer(1.53f), 1e-4f)
+    fun openLocusGrowsWithDistanceUpToFiveTimes() {
+        assertEquals(1f, Readability.scale(0.4f), 1e-4f)
+        assertEquals(1f, Readability.scale(1.0f), 1e-4f)
+        assertEquals(3.2f, Readability.scale(3.2f), 1e-4f)
+        assertEquals(5f, Readability.scale(7f), 1e-4f)
     }
 
     // ---------------------------------------------------------------- sessions

@@ -59,7 +59,7 @@ import io.embodit.memorypalace.ui.theme.PalaceType
  * one primary button + three icon keys + two lines.
  */
 @Composable
-internal fun PocketPanel(state: PalaceUiState?, targetDm: Int, onEvent: (PalaceEvent) -> Unit) {
+internal fun PocketPanel(state: PalaceUiState?, onEvent: (PalaceEvent) -> Unit) {
     Column(
         modifier =
             Modifier
@@ -76,9 +76,9 @@ internal fun PocketPanel(state: PalaceUiState?, targetDm: Int, onEvent: (PalaceE
             state.phase != Phase.READY -> Scanning(state, onEvent)
             state.confirm != null -> Confirm(state, onEvent)
             state.mode == Mode.PLACING -> Placing(state, onEvent)
-            state.mode == Mode.REVIEW -> Reviewing(state, targetDm, onEvent)
+            state.mode == Mode.REVIEW -> Reviewing(state, onEvent)
             state.mode == Mode.REVIEW_DONE -> Summary(state, onEvent)
-            state.mode == Mode.RECALL -> Recalling(state, targetDm, onEvent)
+            state.mode == Mode.RECALL -> Recalling(state, onEvent)
             state.mode == Mode.RECALL_DONE -> RecallResult(state, onEvent)
             else -> Home(state, onEvent)
         }
@@ -232,8 +232,13 @@ private fun ColumnScope.Placing(state: PalaceUiState, onEvent: (PalaceEvent) -> 
     val p = state.placing ?: return
     SessionTop(rs(R.string.place_title, p.number) + "   " + "${p.placed} / ${p.total}", onEvent)
     Column(modifier = Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
+        val open = state.open
         when {
             p.flash != null -> Line(rs(R.string.place_pinned, circled(p.flash)), PalaceColors.Jade, PalaceType.title)
+            open != null -> {
+                Crumbs(open.crumbs, open.inside, onEvent)
+                Line(rs(if (state.selectedModel != null) R.string.edit_stick_turn else R.string.edit_add_hint), ink, PalaceType.body, maxLines = 2)
+            }
             p.edit != null -> Line(rs(R.string.edit_hint), ink, PalaceType.body, maxLines = 2)
             else -> {
                 Line(p.nextTitle, ink, PalaceType.card)
@@ -242,8 +247,8 @@ private fun ColumnScope.Placing(state: PalaceUiState, onEvent: (PalaceEvent) -> 
         }
         val b = p.block
         if (state.nudge?.kind == NudgeKind.PLACE_FAILED) Line(rs(R.string.place_failed), PalaceColors.Coral)
-        else if (b != null && p.flash == null && p.edit == null) Line(blockText(b), if (b == BlockReason.NO_SURFACE) ink2 else PalaceColors.Coral)
-        else if (p.flash == null && p.edit == null) Line(rs(R.string.place_hint), ink2, maxLines = 2)
+        else if (b != null && p.flash == null && p.edit == null && open == null) Line(blockText(b), if (b == BlockReason.NO_SURFACE) ink2 else PalaceColors.Coral)
+        else if (p.flash == null && p.edit == null && open == null) Line(rs(R.string.place_hint), ink2, maxLines = 2)
     }
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Key("undo_place", R.drawable.ic_undo, rs(R.string.cd_undo), { onEvent(PalaceEvent.UndoPlace) }, enabled = p.canUndo && !p.busy)
@@ -254,16 +259,19 @@ private fun ColumnScope.Placing(state: PalaceUiState, onEvent: (PalaceEvent) -> 
 }
 
 @Composable
-private fun ColumnScope.Reviewing(state: PalaceUiState, targetDm: Int, onEvent: (PalaceEvent) -> Unit) {
+private fun ColumnScope.Reviewing(state: PalaceUiState, onEvent: (PalaceEvent) -> Unit) {
     val r = state.review ?: return
     SessionTop(rs(R.string.review_title, r.done, r.total), onEvent, progress = if (r.total == 0) 0f else r.done.toFloat() / r.total)
     val open = state.open
     if (open != null) Crumbs(open.crumbs, open.inside, onEvent)
     Column(modifier = Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.Center) {
         when {
-            open == null && r.nextNumber != null ->
-                Line(rs(R.string.review_next, "${circled(r.nextNumber)} ${r.nextTitle.orEmpty()}", if (targetDm >= 0) metres(targetDm) else "…"), ink, PalaceType.title)
+            open == null && r.nextNumber != null -> {
+                Line(rs(R.string.review_next, "${circled(r.nextNumber)} ${r.nextTitle.orEmpty()}"), ink, PalaceType.title)
+                Line(rs(R.string.review_open_hint), maxLines = 2)
+            }
             open == null -> Line(rs(R.string.review_almost), ink, PalaceType.title)
+            open.single == null && open.cells.isEmpty() -> Line(rs(R.string.review_here, r.hereDue), ink, PalaceType.title)
             open.single?.flipped == true || open.cells.any { it.flipped } -> Line(rs(R.string.review_rate), ink, PalaceType.title)
             open.single != null -> Line(rs(R.string.review_flip), ink, PalaceType.title)
             else -> {
@@ -292,7 +300,7 @@ private fun ColumnScope.Summary(state: PalaceUiState, onEvent: (PalaceEvent) -> 
 }
 
 @Composable
-private fun ColumnScope.Recalling(state: PalaceUiState, targetDm: Int, onEvent: (PalaceEvent) -> Unit) {
+private fun ColumnScope.Recalling(state: PalaceUiState, onEvent: (PalaceEvent) -> Unit) {
     val r = state.recall ?: return
     SessionTop(rs(R.string.recall_title, r.number), onEvent, progress = (r.number - 1).toFloat() / r.lociTotal.coerceAtLeast(1))
     val open = state.open
@@ -301,14 +309,17 @@ private fun ColumnScope.Recalling(state: PalaceUiState, targetDm: Int, onEvent: 
         val n = state.nudge
         when {
             n != null && n.kind == NudgeKind.GO_FIRST -> {
-                Line(rs(R.string.recall_go, circled(r.number), if (targetDm >= 0) metres(targetDm) else "…"), ink, PalaceType.title)
+                Line(rs(R.string.recall_go, circled(r.number)), ink, PalaceType.title)
                 Line(rs(R.string.nudge_go_first, n.text), PalaceColors.Amber)
             }
             n != null && n.kind == NudgeKind.FLIP_FIRST -> {
                 Line(rs(R.string.recall_progress, r.nextTitle.orEmpty(), r.inLocusDone, r.inLocusTotal), ink, PalaceType.title)
                 Line(rs(R.string.nudge_flip_first, n.text), PalaceColors.Amber)
             }
-            open == null -> Line(rs(R.string.recall_go, circled(r.number), if (targetDm >= 0) metres(targetDm) else "…"), ink, PalaceType.title)
+            open == null -> {
+                Line(rs(R.string.recall_go, circled(r.number)), ink, PalaceType.title)
+                Line(rs(R.string.recall_open_hint), maxLines = 2)
+            }
             open.hidden -> {
                 Line(rs(R.string.recall_think, circled(r.number)), ink, PalaceType.title)
                 Line(rs(R.string.recall_pinch))

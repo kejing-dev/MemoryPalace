@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Memory Palace developer helper (Git Bash). Every device command is pinned to emulator-5566 (AVD
-# PICO_6_1_Factory4, the factory lane) and refuses to run when that serial is another AVD.
+# Memory Palace developer helper (Git Bash). Every device command is pinned to emulator-5564 (AVD
+# PICO_6_1_Factory3, the factory lane; override with DEV= AVD=) and refuses to run when that serial is another AVD.
 #
 #   tools/dev.sh build                 assembleDebug            -> .scratch/build.log
 #   tools/dev.sh fg                    which app is in front on the emulator
@@ -8,8 +8,8 @@
 #   tools/dev.sh cmd NAME [TEXT] [NUMBERS]     debug broadcast (see app/src/debug/.../DebugCommands.kt)
 #   tools/dev.sh log [REGEX] [LINES]   logcat, tag MemoryPalace
 #   tools/dev.sh crash                 last crash lines of the app
-DEV=${DEV:-emulator-5566}
-AVD=${AVD:-PICO_6_1_Factory4}
+DEV=${DEV:-emulator-5564}
+AVD=${AVD:-PICO_6_1_Factory3}
 PKG=io.embodit.memorypalace
 TAG=MemoryPalace
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Screenshot of emulator-5566 (AVD PICO_6_1_Factory4) -> .scratch/shots/<name>.png
+# Screenshot of emulator-5564 (AVD PICO_6_1_Factory3) -> .scratch/shots/<name>.png
 #
 # Default: host-side emulator console capture (`adb emu screenrecord screenshot <dir>`): a complete
 # frame even while the emulator compositor idles at 2-3 fps. `--guest`: `pico-cli capture screenshot`.
 set -u
-DEV=${DEV:-emulator-5566}
-AVD=${AVD:-PICO_6_1_Factory4}
+DEV=${DEV:-emulator-5564}
+AVD=${AVD:-PICO_6_1_Factory3}
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/.scratch/shots/$1.png"
 mkdir -p "$ROOT/.scratch/shots/emu"

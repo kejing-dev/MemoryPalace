@@ -22,5 +22,11 @@ object PalaceGraph {
 
     fun wiki(context: Context): WikiClient = wikiClient ?: synchronized(this) { wikiClient ?: WikiClient(context.applicationContext).also { wikiClient = it } }
 
+    @Volatile private var media: MediaFiles? = null
+
+    fun media(context: Context): MediaFiles = media ?: synchronized(this) { media ?: MediaFiles(context.applicationContext).also { media = it } }
+
+    val stick = ControllerStick()
+
     fun store(context: Context): PalaceStore = store ?: synchronized(this) { store ?: FilePalaceStore(context.applicationContext).also { store = it } }
 }

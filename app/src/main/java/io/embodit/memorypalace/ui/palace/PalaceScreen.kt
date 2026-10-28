@@ -19,6 +19,9 @@ import com.pico.spatial.ui.foundation.dsl.unregisterSystem
 import io.embodit.memorypalace.platform.PalaceLog
 import io.embodit.memorypalace.platform.PickerActivity
 import io.embodit.memorypalace.ui.palace.components.LocalPalaceResources
+import io.embodit.memorypalace.ui.palace.components.LocalBackInput
+import io.embodit.memorypalace.ui.palace.components.LocalFrontInput
+import io.embodit.memorypalace.ui.palace.components.LocalNameInput
 import io.embodit.memorypalace.ui.palace.components.LocalWikiInput
 import io.embodit.memorypalace.ui.palace.components.PalaceStage
 import io.embodit.memorypalace.ui.palace.components.localizedResources
@@ -84,13 +87,25 @@ fun PalaceScreen() {
                 PalaceEffect.OpenPicker ->
                     runCatching { context.startActivity(Intent(context, PickerActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
                         .onFailure { PalaceLog.e("IMPORT picker failed: $it", it) }
+                is PalaceEffect.OpenMediaPicker ->
+                    runCatching { context.startActivity(Intent(context, PickerActivity::class.java).putExtra(PickerActivity.EXTRA_MEDIA, effect.kind).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                        .onFailure {
+                            PalaceLog.e("MEDIA picker failed: $it", it)
+                            viewModel.onEvent(PalaceEvent.MediaPicked(null, "none"))
+                        }
             }
         }
     }
 
     // the in-app language switches at run time: panels read their copy from this local
     val resources = remember(state.language, context) { localizedResources(context, state.language) }
-    CompositionLocalProvider(LocalPalaceResources provides resources, LocalWikiInput provides viewModel.wikiInput) {
+    CompositionLocalProvider(
+        LocalPalaceResources provides resources,
+        LocalWikiInput provides viewModel.wikiInput,
+        LocalNameInput provides viewModel.nameInput,
+        LocalFrontInput provides viewModel.frontInput,
+        LocalBackInput provides viewModel.backInput,
+    ) {
         PalaceStage(state = state, scene = scene, onEvent = viewModel::onEvent)
     }
 }

@@ -67,9 +67,6 @@ fun importErrorText(e: ImportError): String =
         }
     )
 
-/** "2.3 m" from decimetres. */
-fun metres(dm: Int): String = "${dm / 10}.${dm % 10} m"
-
 /** Panel sizes (design `panels[].sizeDp`), in dp; physical size = dp × 0.0008 m × the panel's scale. */
 object PanelSizes {
     const val POCKET_W = 400f
@@ -86,10 +83,12 @@ object PanelSizes {
     /** Child card 0.16 × 0.10 m at scale 1. */
     const val CELL_W = 200f
     const val CELL_H = 125f
+    /** v0.3 name plate: the 48 dp name row and, under it, the peek card the hover fades in. */
     const val LABEL_W = 260f
-    const val LABEL_H = 48f
+    const val LABEL_ROW_H = 48f
+    const val LABEL_H = 190f
     const val NUDGE_W = 240f
     const val NUDGE_H = 48f
-    const val EDIT_W = 240f
-    const val EDIT_H = 56f
+    const val EDIT_W = 480f
+    const val EDIT_H = 64f
 }

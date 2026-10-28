@@ -18,11 +18,11 @@
     <string name="home_start_placing">Start placing</string>
     <string name="home_due_cards">cards due today</string>
     <string name="home_due_loci">in %d loci</string>
-    <string name="home_walk_hint">Walk around these loci so the device remembers them</string>
+    <string name="home_walk_hint">Look around once so the device remembers these loci</string>
     <string name="home_start_review">Start review</string>
     <string name="home_done">Done for today</string>
     <string name="home_tomorrow">%d due tomorrow</string>
-    <string name="home_recall">Walk it in order</string>
+    <string name="home_recall">Recall in order</string>
     <string name="lost_line">loci can\'t be found (%d cards)</string>
     <string name="lost_hint">Changed rooms? Go back and look again</string>
     <string name="lost_retry">Look again</string>
@@ -41,10 +41,10 @@
     <string name="place_title">Locus %d</string>
     <string name="place_done">Done</string>
     <string name="place_pinned">%s pinned ✓</string>
-    <string name="place_hint">Look where it goes and pinch: it pins there, about 1.2 m ahead</string>
+    <string name="place_hint">Look or point at the spot and pinch / pull the trigger; stick up / down pushes it out or in (0.6–2 m)</string>
     <string name="place_failed">Didn\'t stick, pinch again</string>
     <string name="place_inside">Inside: %s</string>
-    <string name="edit_hint">Delete it and pin again to move it; its cards go back to \"not placed\"</string>
+    <string name="edit_hint">Pinch a plaque to open it and add items; to move one, delete it and pin again</string>
     <string name="edit_delete">Delete this locus</string>
     <string name="block_surface">Can\'t pin here (floor, ceiling, door, window, sofa)</string>
     <string name="block_too_low">Too low: keep it above 0.8 m</string>
@@ -57,7 +57,7 @@
 
     <!-- review: S10 - S16 -->
     <string name="review_title">Review %1$d / %2$d</string>
-    <string name="review_next">Next: %1$s · %2$s</string>
+    <string name="review_next">Next: %1$s</string>
     <string name="review_almost">Finishing the round…</string>
     <string name="review_here">%d due here</string>
     <string name="review_flip">Pinch to turn it over</string>
@@ -70,14 +70,14 @@
     <string name="ok">OK</string>
 
     <!-- recall: S17 - S20 -->
-    <string name="recall_title">In order · locus %d</string>
-    <string name="recall_go">Next locus: %1$s · %2$s</string>
+    <string name="recall_title">Recall · locus %d</string>
+    <string name="recall_go">Next locus: %1$s</string>
     <string name="recall_think">Think: what is at %s?</string>
     <string name="recall_pinch">Pinch the plaque when you know</string>
     <string name="recall_progress">%1$s: %2$d / %3$d</string>
     <string name="recall_next_hint">Pinch the next card: front and back together, judge it yourself</string>
     <string name="recall_judge">Right or wrong?</string>
-    <string name="result_title">Walk finished</string>
+    <string name="result_title">Recall finished</string>
     <string name="result_cards">cards right</string>
     <string name="result_order_ok">Route order all right</string>
     <string name="result_order_bad">Loci %s out of order</string>
@@ -126,20 +126,19 @@
     <!-- cards -->
     <string name="card_where">Where is this?</string>
     <string name="card_pinch">Pinch to reveal</string>
-    <string name="card_cards">%d cards</string>
+    <string name="card_cards">Cards: %d</string>
     <string name="rate_forgot">✕ Forgot</string>
     <string name="rate_blurry">～ Hazy</string>
     <string name="rate_remembered">✓ Knew</string>
     <string name="judge_right">Right</string>
     <string name="judge_wrong">Wrong</string>
-    <string name="nudge_closer">%s m closer</string>
-    <string name="nudge_go_first">Go to %s first →</string>
+    <string name="nudge_go_first">Open %s first</string>
     <string name="nudge_flip_first">Turn %s first</string>
 
     <!-- v0.2 content sources: S27 - S31 -->
     <string name="new_palace">New palace</string>
     <string name="new_palace_title">New palace</string>
-    <string name="group_poetry">Poetry</string>
+    <string name="group_poetry">Poetry &amp; library</string>
     <string name="group_mine">Mine</string>
     <string name="from_wikipedia">from Wikipedia</string>
     <string name="source_poetry">Poetry</string>
@@ -162,4 +161,57 @@
     <string name="wiki_unreachable_sub">In mainland China, use the poetry packs or import a file</string>
     <string name="wiki_retry">Try again</string>
     <string name="wiki_go_poetry">Go to poetry</string>
+
+    <!-- v0.3: content library, blank palace, add an item, look-and-pinch -->
+    <string name="nudge_nothing_due">Nothing due here today</string>
+    <string name="review_open_hint">Glance at a plaque to see a card; pinch or pull the trigger to open it, from anywhere</string>
+    <string name="recall_open_hint">Look at it and pinch or pull the trigger (no need to walk over)</string>
+    <string name="edit_add_hint">Pinch the last cell ＋ to add text, a picture or a 3D model; pinch the title to close</string>
+    <string name="edit_stick_turn">Stick left / right turns the selected model</string>
+    <string name="edit_rename">Rename</string>
+    <string name="edit_object">Memory object</string>
+    <string name="add_item">Add an item</string>
+    <string name="add_target">Into: %s</string>
+    <string name="add_text">Text</string>
+    <string name="add_image">Picture</string>
+    <string name="add_model">3D model</string>
+    <string name="add_group">Sub-locus</string>
+    <string name="add_front">Front (required, ≤40)</string>
+    <string name="add_back">Back (optional, ≤60)</string>
+    <string name="add_name">Name</string>
+    <string name="add_model_name">Name (required)</string>
+    <string name="add_picking">Waiting for the file picker…</string>
+    <string name="add_image_scaled">Scaled to 1024 px</string>
+    <string name="add_model_loading">Loading the model…</string>
+    <string name="add_model_ready">Loaded · scaled to 0.30 m</string>
+    <string name="add_model_heavy">Large model, may stutter (you can still place it)</string>
+    <string name="add_beside">Beside the locus (always seen)</string>
+    <string name="add_on_card">On the card</string>
+    <string name="add_files_hint">Pictures png / jpg / webp, models .glb / .usdz: copy them to the headset Download folder over USB</string>
+    <string name="media_format_model">Please export it as .glb or .usdz</string>
+    <string name="media_format_image">Only png, jpg and webp pictures</string>
+    <string name="media_big_image">The picture is over 15 MB</string>
+    <string name="media_big_model">The model is over 25 MB</string>
+    <string name="media_load_failed">The model could not be loaded</string>
+    <string name="media_too_many_models">This palace already has 12 3D models</string>
+    <string name="media_no_picker">This device has no file picker</string>
+    <string name="media_full">This level is full (8 per level, 120 cards per palace)</string>
+    <string name="source_library">Content library</string>
+    <string name="source_library_sub">Offline · 30+ ready-made palaces</string>
+    <string name="source_blank">Blank palace</string>
+    <string name="source_blank_sub">Add your own text, pictures, 3D models</string>
+    <string name="blank_name">Palace name</string>
+    <string name="blank_hint">Name it and start placing: every pinch pins a new locus; pinch a plaque to add things into it.</string>
+    <string name="blank_start">Start placing</string>
+    <string name="cat_poetry">Poetry</string>
+    <string name="cat_language">Language</string>
+    <string name="cat_histgeo">History</string>
+    <string name="cat_science">Science</string>
+    <string name="cat_numbers">Numbers</string>
+    <string name="lib_add">Add</string>
+    <string name="lib_count">%1$d cards · %2$d vols</string>
+    <string name="lib_generated">%d cards · random each time</string>
+    <string name="lib_volume">%1$d loci · %2$d cards</string>
+    <string name="lib_new_shuffled">New one (shuffled)</string>
+    <string name="lib_license">All offline. Classical texts public domain; chinese-poetry and ECDICT data MIT; capitals Wikidata CC0.</string>
 </resources>

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Test harness for the PICO emulator, pinned to ONE device/AVD. Callable from Git Bash.
-#   DEV (default emulator-5566), AVD (default PICO_6_1_Factory4), PKG (default io.embodit.memorypalace), TAG (default SpatialRuler)
+#   DEV (default emulator-5564), AVD (default PICO_6_1_Factory3), PKG (default io.embodit.memorypalace), TAG (default SpatialRuler)
 #   (for the feasibility spike: PKG=io.embodit.rulerspike TAG=RulerSpike)
 #
 # Host input goes through emu.ps1 (PostMessage to the qemu PID of $AVD only; real cursor/focus untouched).
@@ -24,8 +24,8 @@
 #   emu.sh pose                                 head pose (needs the app's `pose` debug command)
 #   emu.sh calibrate [args]                     see calibrate.py
 set -u
-DEV="${DEV:-emulator-5566}"
-AVD="${AVD:-PICO_6_1_Factory4}"
+DEV="${DEV:-emulator-5564}"
+AVD="${AVD:-PICO_6_1_Factory3}"
 PKG="${PKG:-io.embodit.memorypalace}"
 TAG="${TAG:-MemoryPalace}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
