@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -99,7 +100,7 @@ internal fun ColumnScope.PoetryView(state: PalaceUiState, onEvent: (PalaceEvent)
             ) {
                 Text(text = p.name, style = PalaceType.card, color = ink, maxLines = 1)
                 Text(text = rs(R.string.pack_count, p.poets.size, p.poems, p.cards), style = PalaceType.body, color = ink2, maxLines = 1)
-                Text(text = p.poets.joinToString(" · "), style = PalaceType.body, color = ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(text = p.poets.joinToString(" · "), style = PalaceType.body, color = ink2)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     if (p.built) Secondary("pack_open_${p.id}", rs(R.string.pack_in_library), { onEvent(PalaceEvent.BuildPack(p.id)) }, icon = R.drawable.ic_check)
                     else Primary("pack_build_${p.id}", rs(R.string.pack_build), { onEvent(PalaceEvent.BuildPack(p.id)) }, height = 44.dp)
@@ -166,9 +167,9 @@ private fun ColumnScope.WikiSearchPage(w: WikiUi, onEvent: (PalaceEvent) -> Unit
         LazyColumn(state = list, modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
             items(w.hits, key = { it.title }) { h ->
                 ListItem(
-                    headlineContent = { Text(text = h.title, style = PalaceType.title, color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    modifier = Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(16.dp)).clickable { onEvent(PalaceEvent.WikiPick(h.title, h.description)) }.probe("wiki_hit_${w.hits.indexOf(h)}"),
-                    supportingContent = if (h.description.isNotBlank()) ({ Text(text = h.description, style = PalaceType.body, color = ink2, maxLines = 1, overflow = TextOverflow.Ellipsis) }) else null,
+                    headlineContent = { Text(text = h.title, style = PalaceType.title, color = ink) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp).clip(RoundedCornerShape(16.dp)).clickable { onEvent(PalaceEvent.WikiPick(h.title, h.description)) }.probe("wiki_hit_${w.hits.indexOf(h)}"),
+                    supportingContent = if (h.description.isNotBlank()) ({ Text(text = h.description, style = PalaceType.body, color = ink2) }) else null,
                 )
             }
         }
@@ -209,20 +210,20 @@ private fun ColumnScope.WikiPreview(w: WikiUi, onEvent: (PalaceEvent) -> Unit) {
         }
         return
     }
-    if (p.description.isNotBlank()) Text(text = p.description, style = PalaceType.body, color = ink2, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    if (p.description.isNotBlank()) FitText(p.description, PalaceType.body, ink2, maxLines = 3, minScale = 0.8f)
     val list = rememberLazyListState()
     Box(modifier = Modifier.weight(1f)) {
         LazyColumn(state = list, modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
             items(p.loci, key = { it.index }) { l ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(60.dp).clip(RoundedCornerShape(16.dp)).clickable { onEvent(PalaceEvent.WikiToggle(l.index)) }.padding(horizontal = 4.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp).clip(RoundedCornerShape(16.dp)).clickable { onEvent(PalaceEvent.WikiToggle(l.index)) }.padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Checkbox(l.kept, { onEvent(PalaceEvent.WikiToggle(l.index)) }, modifier = Modifier.probe("wiki_locus_${l.index}"))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(text = "${l.title} · " + rs(R.string.card_cards, l.cards), style = PalaceType.title, color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(text = l.firstFront, style = PalaceType.label, color = ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(text = "${l.title} · " + rs(R.string.card_cards, l.cards), style = PalaceType.title, color = ink)
+                        Text(text = l.firstFront, style = PalaceType.label, color = ink2)
                     }
                 }
             }

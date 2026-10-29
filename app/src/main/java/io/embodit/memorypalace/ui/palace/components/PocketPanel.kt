@@ -93,7 +93,7 @@ private val ink2: Color
 
 @Composable
 private fun Line(text: String, color: Color = ink2, style: androidx.compose.ui.text.TextStyle = PalaceType.body, maxLines: Int = 1, modifier: Modifier = Modifier) {
-    Text(text = text, color = color, style = style, maxLines = maxLines, overflow = TextOverflow.Ellipsis, modifier = modifier)
+    FitText(text, style, color, modifier, maxLines = maxLines, minScale = 0.7f)
 }
 
 @Composable
@@ -140,7 +140,8 @@ private fun PalaceChip(state: PalaceUiState, onEvent: (PalaceEvent) -> Unit, mod
     ButtonChip(
         label = {
             // design-style: inherited-content-color ButtonChip
-            Text(text = state.palaceName, style = PalaceType.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // QA q8-1: long palace names shrink instead of ending in an ellipsis
+            FitText(state.palaceName, PalaceType.title, PicoTheme.colorScheme.labelPrimary, maxLines = 2, minScale = 0.7f, oneLineFirst = true)
         },
         onClick = { onEvent(PalaceEvent.ChipClicked) },
         modifier = modifier.probe("chip"),
@@ -213,7 +214,7 @@ private fun ColumnScope.Home(state: PalaceUiState, onEvent: (PalaceEvent) -> Uni
 @Composable
 private fun SessionTop(title: String, onEvent: (PalaceEvent) -> Unit, progress: Float? = null) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = title, color = ink, style = PalaceType.title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        FitText(title, PalaceType.title, ink, Modifier.weight(1f), maxLines = 2, minScale = 0.7f, oneLineFirst = true)
         Key("end", R.drawable.ic_close, rs(R.string.cd_close), { onEvent(PalaceEvent.EndSession) }, size = 40.dp)
     }
     if (progress != null) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
@@ -223,7 +224,7 @@ private fun SessionTop(title: String, onEvent: (PalaceEvent) -> Unit, progress: 
 private fun Crumbs(crumbs: List<String>, canUp: Boolean, onEvent: (PalaceEvent) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         if (canUp) Key("up", R.drawable.ic_up, rs(R.string.cd_up), { onEvent(PalaceEvent.UpLevel) }, size = 36.dp)
-        Text(text = crumbs.joinToString(" › "), color = ink2, style = PalaceType.crumb, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        FitText(crumbs.joinToString(" › "), PalaceType.crumb, ink2, maxLines = 2, minScale = 0.7f)
     }
 }
 

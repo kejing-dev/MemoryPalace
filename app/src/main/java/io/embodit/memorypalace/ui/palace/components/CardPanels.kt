@@ -104,7 +104,8 @@ private fun Porcelain(width: Float, height: Float, deck: Color, lit: Boolean, di
 
 @Composable
 private fun InkText(text: String, style: TextStyle, color: Color = PalaceColors.Ink, maxLines: Int = 2, modifier: Modifier = Modifier) {
-    Text(text = text, color = color, style = style, maxLines = maxLines, overflow = TextOverflow.Ellipsis, modifier = modifier)
+    // QA q8-1: shrink to fit before any ellipsis
+    FitText(text, style, color, modifier, maxLines = maxLines, minScale = 0.7f)
 }
 
 /**

@@ -141,7 +141,7 @@ internal fun ColumnScope.ContentView(state: PalaceUiState, onEvent: (PalaceEvent
             for (col in c.collections) {
                 item(key = col.id) {
                     ListItem(
-                        headlineContent = { Text(text = col.name, style = PalaceType.title, color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        headlineContent = { Text(text = col.name, style = PalaceType.title, color = ink) },
                         // QA q7-4: the row grows with its structure line (no fixed height, no ellipsis)
                         modifier = Modifier.fillMaxWidth().heightIn(min = 84.dp).clip(RoundedCornerShape(16.dp)).clickable { onEvent(PalaceEvent.LibraryExpand(col.id)) }.probe("lib_${col.id}"),
                         supportingContent = {
@@ -166,9 +166,9 @@ internal fun ColumnScope.ContentView(state: PalaceUiState, onEvent: (PalaceEvent
                         }
                     }
                     items(col.volumes, key = { it.id }) { v ->
-                        Row(modifier = Modifier.fillMaxWidth().height(60.dp).padding(start = 24.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp).padding(start = 24.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(text = v.name, style = PalaceType.title, color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(text = v.name, style = PalaceType.title, color = ink)
                                 Text(text = rs(R.string.lib_volume, v.loci, v.cards), style = PalaceType.label, color = ink2, maxLines = 1)
                             }
                             if (v.inLibrary) Secondary("lib_vol_${v.id}", rs(R.string.pack_in_library), { onEvent(PalaceEvent.AddVolume(v.id)) }, icon = R.drawable.ic_check, height = 48.dp)
@@ -243,7 +243,7 @@ internal fun ColumnScope.AddItemView(state: PalaceUiState, onEvent: (PalaceEvent
             else -> rs(R.string.add_item)
         }
     Header(title, a.step != AddStep.MENU, onEvent) {}
-    Text(text = rs(R.string.add_target, a.targetTitle), style = PalaceType.body, color = ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text(text = rs(R.string.add_target, a.targetTitle), style = PalaceType.body, color = ink2)
     Column(modifier = Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         when (a.step) {
             AddStep.MENU -> Menu(a, onEvent)

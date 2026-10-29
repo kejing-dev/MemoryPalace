@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -102,11 +103,11 @@ private fun androidx.compose.foundation.layout.ColumnScope.Palaces(state: Palace
                 }
             items(rows, key = { it.id }) { row ->
                 ListItem(
-                    headlineContent = { Text(text = row.name, style = PalaceType.title, color = PicoTheme.colorScheme.labelPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    modifier = Modifier.fillMaxWidth().height(Row72).clip(RoundedCornerShape(16.dp)).clickable { onEvent(PalaceEvent.PalacePicked(row.id)) }.probe("palace_${row.id}"),
+                    headlineContent = { Text(text = row.name, style = PalaceType.title, color = PicoTheme.colorScheme.labelPrimary) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = Row72).clip(RoundedCornerShape(16.dp)).clickable { onEvent(PalaceEvent.PalacePicked(row.id)) }.probe("palace_${row.id}"),
                     supportingContent = {
                         val line = rs(R.string.library_row, row.loci, row.cards, row.dueToday)
-                        Text(text = if (row.wiki) line + " · " + rs(R.string.from_wikipedia) else line, style = PalaceType.body, color = PicoTheme.colorScheme.labelSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(text = if (row.wiki) line + " · " + rs(R.string.from_wikipedia) else line, style = PalaceType.body, color = PicoTheme.colorScheme.labelSecondary)
                     },
                     leadingContent = { Box(modifier = Modifier.size(14.dp).clip(CircleShape).background(PalaceColors.deck(row.color))) },
                     trailingContent = {
@@ -151,8 +152,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.ImportView(state: Pal
         LazyColumn(state = list, modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
             items(state.importFiles, key = { it.name }) { f ->
                 ListItem(
-                    headlineContent = { Text(text = f.name, style = PalaceType.title, color = PicoTheme.colorScheme.labelPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    modifier = Modifier.fillMaxWidth().height(64.dp).clip(RoundedCornerShape(16.dp)).clickable { onEvent(PalaceEvent.ImportFile(f.name)) }.probe("file_${f.name}"),
+                    headlineContent = { Text(text = f.name, style = PalaceType.title, color = PicoTheme.colorScheme.labelPrimary) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).clip(RoundedCornerShape(16.dp)).clickable { onEvent(PalaceEvent.ImportFile(f.name)) }.probe("file_${f.name}"),
                     supportingContent = { Text(text = rs(R.string.import_lines, f.lines), style = PalaceType.body, color = PicoTheme.colorScheme.labelSecondary, maxLines = 1) },
                     leadingContent = { Icon(painter = painterResource(R.drawable.ic_file), contentDescription = null, modifier = Modifier.size(24.dp), tint = PicoTheme.colorScheme.labelPrimary) },
                 )
