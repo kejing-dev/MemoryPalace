@@ -148,7 +148,8 @@ internal fun ColumnScope.ContentView(state: PalaceUiState, onEvent: (PalaceEvent
                             val count = if (col.generated) rs(R.string.lib_generated, col.cards) else rs(R.string.lib_count, col.cards, col.volumes.size)
                             Text(text = "$count · ${col.structure}", style = PalaceType.body, color = ink2)
                         },
-                        trailingContent = { Icon(painter = painterResource(R.drawable.ic_up), contentDescription = null, modifier = Modifier.size(20.dp), tint = ink2) },
+                        // QA q11-1 (D23): a chevron that says open / close, not the back arrow
+                        trailingContent = { Icon(painter = painterResource(if (col.expanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more), contentDescription = null, modifier = Modifier.size(24.dp), tint = ink2) },
                     )
                 }
                 if (col.expanded) {
