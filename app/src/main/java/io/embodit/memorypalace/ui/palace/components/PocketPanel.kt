@@ -150,12 +150,30 @@ private fun PalaceChip(state: PalaceUiState, onEvent: (PalaceEvent) -> Unit, mod
     )
 }
 
+/**
+ * v0.3.2 (device feedback 「设置图标有缺陷」, profile D23): the settings key is a chip like the palace chip beside it,
+ * Material Symbols gear + the word 「设置」, 20 dp like the icons of the labelled buttons.
+ */
+@Composable
+private fun SettingsChip(selected: Boolean, onEvent: (PalaceEvent) -> Unit) {
+    ButtonChip(
+        label = {
+            // design-style: inherited-content-color ButtonChip
+            Text(text = rs(R.string.cd_settings), style = PalaceType.title, maxLines = 1, softWrap = false)
+        },
+        onClick = { onEvent(PalaceEvent.SettingsClicked) },
+        modifier = Modifier.probe("settings"),
+        leadingIcon = { Icon(painter = painterResource(R.drawable.ic_settings), contentDescription = null, modifier = Modifier.size(20.dp), tint = PicoTheme.colorScheme.labelPrimary) },
+        colors = ChipsDefaults.chipColors(contentColor = PicoTheme.colorScheme.labelPrimary, backgroundColor = if (selected) PicoTheme.colorScheme.fillSecondary else PicoTheme.colorScheme.fillTertiary),
+    )
+}
+
 @Composable
 private fun HomeTop(state: PalaceUiState, onEvent: (PalaceEvent) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         PalaceChip(state, onEvent, Modifier.weight(1f, fill = false))
         Spacer(modifier = Modifier.weight(1f))
-        Key("settings", R.drawable.ic_settings, rs(R.string.cd_settings), { onEvent(PalaceEvent.SettingsClicked) }, size = 40.dp, selected = state.popup != null && state.popup == io.embodit.memorypalace.ui.palace.Popup.SETTINGS)
+        SettingsChip(state.popup == io.embodit.memorypalace.ui.palace.Popup.SETTINGS, onEvent)
     }
 }
 
