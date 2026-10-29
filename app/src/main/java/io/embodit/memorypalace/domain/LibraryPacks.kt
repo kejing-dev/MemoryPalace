@@ -40,8 +40,8 @@ object LibraryPacks {
     const val CARDS52 = "cards52"
     const val DIGITS100 = "digits100"
 
-    /** Segment order of S32. */
-    val categories = listOf("poetry", "language", "histgeo", "science", "numbers")
+    /** Category order of S32 (v0.3.1: the encyclopedia collections split geography / history / nature / common). */
+    val categories = listOf("poetry", "language", "geo", "history", "nature", "common", "numbers")
 
     fun palaceId(volumeId: String): String = PREFIX + volumeId
 

@@ -159,7 +159,7 @@ data class PlacingUi(
 )
 
 /** One collection row of the content library (S32); [expanded] lists its volumes. */
-data class CollectionUi(val id: String, val name: String, val structure: String, val cards: Int, val generated: Boolean, val volumes: List<VolumeUi>, val expanded: Boolean)
+data class CollectionUi(val id: String, val name: String, val structure: String, val cards: Int, val generated: Boolean, val volumes: List<VolumeUi>, val expanded: Boolean, val source: String = "", val license: String = "")
 
 data class VolumeUi(val id: String, val name: String, val loci: Int, val cards: Int, val inLibrary: Boolean)
 

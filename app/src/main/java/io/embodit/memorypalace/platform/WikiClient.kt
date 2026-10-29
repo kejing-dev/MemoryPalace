@@ -77,6 +77,7 @@ class WikiClient(private val context: Context) {
     companion object {
         const val TIMEOUT_MS = 6_000
         // Wikimedia asks for a contact in the User-Agent: the design leaves it to be filled in before release
-        const val USER_AGENT = "MemoryPalace/0.2 (io.embodit.memorypalace)"
+        // Wikimedia asks for a way to reach the operator: the project page
+        const val USER_AGENT = "MemoryPalace/0.3 (https://github.com/kejing-dev/MemoryPalace; io.embodit.memorypalace)"
     }
 }

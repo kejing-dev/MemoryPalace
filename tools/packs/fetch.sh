@@ -17,6 +17,15 @@ for n in 0 1000 2000 3000 4000 5000 6000 7000 8000 9000 10000 11000 12000 13000 
 done
 get https://raw.githubusercontent.com/skywind3000/ECDICT/master/ecdict.csv .cache/src/ecdict.csv
 get https://raw.githubusercontent.com/skywind3000/ECDICT/master/LICENSE .cache/src/ECDICT_LICENSE
+# v0.3.1 second sources / non-Wikidata data (Wikidata + Wikipedia API calls are cached by the build itself)
+UA="MemoryPalaceContentBuilder/0.3.1 (https://github.com/kejing-dev/MemoryPalace; packs build script)"
+mkdir -p .cache/src/unesco .cache/src/iso4217 .cache/src/bsc5 .cache/src/pubchem
+getua() { [ -s "$2" ] || curl -sfL -A "$UA" "$1" -o "$2"; }
+getua https://whc.unesco.org/en/list/xml/ .cache/src/unesco/whc.xml
+getua https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml .cache/src/iso4217/list-one.xml
+getua http://tdc-www.harvard.edu/catalogs/bsc5.dat.gz .cache/src/bsc5/bsc5.dat.gz
+getua http://tdc-www.harvard.edu/catalogs/bsc5.readme .cache/src/bsc5/bsc5.readme
+getua https://pubchem.ncbi.nlm.nih.gov/rest/pug/periodictable/JSON .cache/src/pubchem/periodictable.json
 if [ ! -x .cache/venv/Scripts/python.exe ] && [ ! -x .cache/venv/bin/python ]; then
   python -I -m venv .cache/venv
 fi

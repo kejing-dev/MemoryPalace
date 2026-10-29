@@ -521,13 +521,13 @@ internal object DebugCommands {
                 done(vm, id)
             }
             // ---- v0.3: content library, blank palace, add an item
-            "S32", "S32L", "S32H", "S32S", "S32N" -> {
+            "S32", "S32L", "S32G", "S32H", "S32S", "S32C", "S32N" -> {
                 vm.onEvent(PalaceEvent.NewPalace)
                 vm.onEvent(PalaceEvent.SourceLibrary)
-                val cat = mapOf("S32L" to "language", "S32H" to "histgeo", "S32S" to "science", "S32N" to "numbers")[id] ?: "poetry"
+                val cat = mapOf("S32L" to "language", "S32G" to "geo", "S32H" to "history", "S32S" to "nature", "S32C" to "common", "S32N" to "numbers")[id] ?: "poetry"
                 vm.onEvent(PalaceEvent.LibraryCategory(cat))
-                val first = mapOf("poetry" to "tang300", "language" to "words1000", "histgeo" to "capitals", "science" to "elements", "numbers" to "pi")[cat]
-                first?.let { vm.onEvent(PalaceEvent.LibraryExpand(it)) }
+                // the first collection of the category opens
+                vm.state.value.content?.collections?.firstOrNull()?.let { vm.onEvent(PalaceEvent.LibraryExpand(it.id)) }
                 done(vm, id)
             }
             "S32B" -> {

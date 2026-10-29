@@ -35,6 +35,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pico.spatial.ui.design.ButtonChip
+import com.pico.spatial.ui.design.ChipsDefaults
 import com.pico.spatial.ui.design.CircularProgressDefaults
 import com.pico.spatial.ui.design.CircularProgressIndicator
 import com.pico.spatial.ui.design.Icon
@@ -48,6 +50,7 @@ import com.pico.spatial.ui.design.Text
 import com.pico.spatial.ui.design.TextField
 import com.pico.spatial.ui.foundation.hover.spatialHoverEffect
 import io.embodit.memorypalace.R
+import io.embodit.memorypalace.domain.LibraryPacks
 import io.embodit.memorypalace.domain.Limits
 import io.embodit.memorypalace.domain.MediaError
 import io.embodit.memorypalace.ui.palace.AddStep
@@ -81,35 +84,45 @@ private fun categoryName(c: String): String =
         when (c) {
             "poetry" -> R.string.cat_poetry
             "language" -> R.string.cat_language
-            "histgeo" -> R.string.cat_histgeo
-            "science" -> R.string.cat_science
+            "geo" -> R.string.cat_geo
+            "history" -> R.string.cat_history
+            "nature" -> R.string.cat_nature
+            "common" -> R.string.cat_common
             else -> R.string.cat_numbers
         }
     )
+
+/**
+ * v0.3.1: seven categories as two rows of chips (a single segment row would not fit 440 dp with readable
+ * labels); the selected one is filled. 48 dp high (taste B19).
+ */
+@Composable
+private fun Categories(selected: String, onEvent: (PalaceEvent) -> Unit) {
+    for (row in LibraryPacks.categories.chunked(4)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            for (cat in row) {
+                val on = cat == selected
+                ButtonChip(
+                    label = {
+                        // design-style: inherited-content-color ButtonChip
+                        Text(text = categoryName(cat), style = PalaceType.crumb, maxLines = 1, softWrap = false)
+                    },
+                    onClick = { onEvent(PalaceEvent.LibraryCategory(cat)) },
+                    modifier = Modifier.height(44.dp).probe("lib_cat_$cat"),
+                    colors = ChipsDefaults.chipColors(contentColor = ink, backgroundColor = if (on) PicoTheme.colorScheme.fillSecondary else PicoTheme.colorScheme.fillTertiary),
+                    leadingIcon = if (on) ({ Icon(painter = painterResource(R.drawable.ic_check), contentDescription = null, modifier = Modifier.size(16.dp), tint = ink) }) else null,
+                )
+            }
+        }
+    }
+}
 
 /** S32: five segments, a row per collection; a row opens into its volumes, each 「加入宫殿库」. */
 @Composable
 internal fun ColumnScope.ContentView(state: PalaceUiState, onEvent: (PalaceEvent) -> Unit) {
     val c = state.content ?: return
     Header(rs(R.string.source_library), true, onEvent) {}
-    SegmentControl(modifier = Modifier.fillMaxWidth().height(44.dp), backgroundColor = PicoTheme.colorScheme.fillTertiary) {
-        for (cat in listOf("poetry", "language", "histgeo", "science", "numbers")) {
-            SegmentItem(
-                selected = c.category == cat,
-                onClick = { onEvent(PalaceEvent.LibraryCategory(cat)) },
-                modifier = Modifier.width(87.dp).fillMaxHeight().probe("lib_cat_$cat"),
-                textStyle = PalaceType.label,
-                colors =
-                    SegmentControlDefaults.colors(
-                        itemBackgroundColor = Color.Transparent,
-                        itemContentColor = ink,
-                        selectedItemBackgroundColor = PicoTheme.colorScheme.fillSecondary,
-                        selectedItemContentColor = ink,
-                    ),
-                title = { Text(text = categoryName(cat), color = ink, style = PalaceType.label, maxLines = 1, softWrap = false) },
-            )
-        }
-    }
+    Categories(c.category, onEvent)
     val list = rememberLazyListState()
     Box(modifier = Modifier.weight(1f)) {
         LazyColumn(state = list, modifier = Modifier.fillMaxWidth().fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -137,6 +150,12 @@ internal fun ColumnScope.ContentView(state: PalaceUiState, onEvent: (PalaceEvent
                     )
                 }
                 if (col.expanded) {
+                    // v0.3.1: where the cards come from (index.json source + license)
+                    if (col.source.isNotBlank()) {
+                        item(key = col.id + "_src") {
+                            Text(text = rs(R.string.lib_source, col.source, col.license), style = PalaceType.label, color = ink2, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 24.dp, end = 8.dp).probe("lib_src_${col.id}"))
+                        }
+                    }
                     if (col.generated) {
                         item(key = col.id + "_gen") {
                             Row(modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp), horizontalArrangement = Arrangement.End) {

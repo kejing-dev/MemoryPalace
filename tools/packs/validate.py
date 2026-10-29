@@ -12,10 +12,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from common import OUT, MAX_LOCI, MAX_KIDS, MAX_CARDS, MAX_FRONT, MAX_BACK  # noqa: E402
 
-CATEGORIES = {"poetry", "language", "histgeo", "science", "numbers"}
-ORDER = ["tang300", "song300", "sanzijing", "qianziwen", "lunyu", "words1000",
-         "jieqi", "dynasty2", "provinces", "capitals", "uspres", "elements", "solar",
-         "pi", "cards52", "digits100"]
+from build import CATEGORY_ORDER, ORDER, NEW_V031  # noqa: E402
+import v031_checks  # noqa: E402
+
+CATEGORIES = set(CATEGORY_ORDER)
 POETRY = {"tang300", "song300", "sanzijing", "qianziwen", "lunyu"}
 ID_RE = re.compile(r"^[a-z0-9-]+$")
 GROUP_TITLE_SOFT = 16
@@ -101,6 +101,9 @@ def main():
     ids = [c["id"] for c in cols]
     if ids != ORDER:
         err("collection order %s != %s" % (ids, ORDER))
+    cat_idx = [CATEGORY_ORDER.index(c["category"]) for c in cols if c["category"] in CATEGORIES]
+    if cat_idx != sorted(cat_idx):
+        err("collections not ordered by category %s" % CATEGORY_ORDER)
     vol_ids, files_seen = set(), set()
     all_chars = set()
     total_cards = 0
@@ -165,6 +168,20 @@ def main():
         err("orphan/missing volume files: %s" % sorted(on_disk ^ files_seen))
     for vid, t, t2 in trad_hits:
         err("traditional chars remain in %s: %s -> %s" % (vid, t, t2))
+    # v0.3.1: generated numbers vs raw data, elements completeness, per-collection minimums
+    new_cards = 0
+    for c in cols:
+        if c["id"] in NEW_V031:
+            new_cards += c["cards"]
+            if not (c.get("source") and c.get("license")):
+                err("%s: source/license missing" % c["id"])
+    if len([c for c in cols if c["id"] in NEW_V031]) < 12:
+        err("fewer than 12 new collections")
+    if new_cards < 1500:
+        err("new cards %d < 1500" % new_cards)
+    print("v0.3.1 new collections: %d, new cards: %d" % (len(NEW_V031), new_cards))
+    for msg in v031_checks.run(OUT, cols):
+        err(msg)
 
     size = sum(os.path.getsize(os.path.join(OUT, f)) for f in os.listdir(OUT))
     cjk = sorted(ch for ch in all_chars if is_cjk(ch))

@@ -1134,6 +1134,8 @@ class PalaceViewModel(
                     c.generated,
                     c.volumes.map { v -> VolumeUi(v.id, v.name(zh), v.loci, v.cards, lib.palaces.any { it.id == LibraryPacks.palaceId(v.id) }) },
                     expanded = libExpanded == c.id,
+                    source = c.source,
+                    license = c.license,
                 )
             }
         return ContentUi(libCategory, rows, if (libCategory == LibraryPacks.categories.first()) packsUi() else emptyList())

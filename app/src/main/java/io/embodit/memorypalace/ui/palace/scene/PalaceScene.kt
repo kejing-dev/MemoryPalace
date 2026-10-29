@@ -702,13 +702,18 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         pocketFollow.step(pose, now, hold)?.let { pocket.moveTo(it) }
         val facing = io.embodit.memorypalace.domain.FacePanel.facing(pocket.position, pose.position, null)
         val pocketH = PanelSizes.POCKET_H * DP_M * POCKET_SCALE
+        // v0.3.1 (profile D16): popups stand on the right of the pocket panel (towards the middle of the view), their
+        // bottom edges level, so the tall library page is never cut off by the top of the view
+        val pocketW = PanelSizes.POCKET_W * DP_M * POCKET_SCALE
         if (ui.popup != null && ui.popup != Popup.SETTINGS) {
+            val w = PanelSizes.LIBRARY_W * DP_M * POCKET_SCALE
             val h = PanelSizes.LIBRARY_H * DP_M * POCKET_SCALE
-            rig[PanelIds.LIBRARY]?.moveTo(pocket.position + facing.up * (pocketH / 2f + h / 2f + 0.012f) + facing.normal * 0.02f)
+            rig[PanelIds.LIBRARY]?.moveTo(pocket.position + facing.right * (pocketW / 2f + w / 2f + 0.015f) + facing.up * ((h - pocketH) / 2f) + facing.normal * 0.02f)
         }
         if (ui.popup == Popup.SETTINGS) {
+            val w = PanelSizes.SETTINGS_W * DP_M * POCKET_SCALE
             val h = PanelSizes.SETTINGS_H * DP_M * POCKET_SCALE
-            rig[PanelIds.SETTINGS]?.moveTo(pocket.position + facing.up * (pocketH / 2f + h / 2f + 0.012f) + facing.normal * 0.02f)
+            rig[PanelIds.SETTINGS]?.moveTo(pocket.position + facing.right * (pocketW / 2f + w / 2f + 0.015f) + facing.up * ((h - pocketH) / 2f) + facing.normal * 0.02f)
         }
         placeNudge()
         placeEdit()

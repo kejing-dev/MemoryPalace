@@ -38,3 +38,5 @@ google-services.json
 .kotlin/
 tools/harness/.state/
 tools/test/out/
+__pycache__/
+*.pyc
