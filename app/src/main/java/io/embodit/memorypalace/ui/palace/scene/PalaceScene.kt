@@ -749,6 +749,44 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
 
     private fun deg(r: Float): Float = Math.toDegrees(r.toDouble()).toFloat()
 
+    /**
+     * QA q10-2 (profile D8 / D17): a popup ([w] x [h] m at [p]) that a nearby plaque would cut into comes forward along
+     * its own line of sight until it stands in front of every plaque, name plate or open card it overlaps in the view
+     * (a little larger, its left and bottom edges kept; never nearer than 0.45 m).
+     */
+    private fun clearOfLoci(p: Vec3, w: Float, h: Float): Vec3 {
+        val head = pose.position
+        val toP = p - head
+        val pd = toP.length
+        if (pd < 0.05f) return p
+        val f = pose.level()
+        val fwd = f.at(0f)
+        val left = P2(f.z, -f.x).at(0f)
+        fun yawPitch(q: Vec3): Pair<Float, Float> {
+            val d = q - head
+            return deg(atan2(d.dot(left), d.dot(fwd))) to deg(atan2(d.y, hypot(d.dot(fwd), d.dot(left))))
+        }
+        val (py, pp) = yawPitch(p)
+        val pw = deg(atan(w / 2f / pd))
+        val ph = deg(atan(h / 2f / pd))
+        var want = pd
+        val things = foundLoci().map { it.position to POPUP_CLEAR_M * scaleOf(it) } + openCenters.map { it to PanelSizes.CELL_W * DP_M * openScale / 2f }
+        for ((q, r) in things) {
+            val qd = (q - head).length
+            if (qd > pd + r || qd < 0.05f) continue
+            val (qy, qp) = yawPitch(q)
+            val qr = deg(atan(r / qd))
+            if (abs(qy - py) < pw + qr && abs(qp - pp) < ph + qr) want = minOf(want, qd - r - 0.05f)
+        }
+        if (want >= pd) return p
+        // nearer means larger in the view: keep its left and bottom edges where they were, so it grows away from the
+        // pocket panel instead of over it
+        val nd = maxOf(want, POPUP_MIN_M)
+        val y = Math.toRadians((py - (deg(atan(w / 2f / nd)) - pw)).toDouble()).toFloat()
+        val pitch = Math.toRadians((pp + (deg(atan(h / 2f / nd)) - ph)).toDouble()).toFloat()
+        return head + (fwd * cos(y) + left * sin(y)) * (nd * cos(pitch)) + Vec3(0f, nd * sin(pitch), 0f)
+    }
+
     /** A control of the pocket panel was pressed: it holds still for a moment. */
     fun onPocketPointer() {
         lastPocketPressMs = SystemClock.elapsedRealtime()
@@ -773,12 +811,12 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         if (ui.popup != null && ui.popup != Popup.SETTINGS) {
             val w = PanelSizes.LIBRARY_W * DP_M * POCKET_SCALE
             val h = PanelSizes.LIBRARY_H * DP_M * POCKET_SCALE
-            rig[PanelIds.LIBRARY]?.moveTo(pocket.position + facing.right * (pocketW / 2f + w / 2f + 0.015f) + facing.up * ((h - pocketH) / 2f) + facing.normal * 0.02f)
+            rig[PanelIds.LIBRARY]?.moveTo(clearOfLoci(pocket.position + facing.right * (pocketW / 2f + w / 2f + 0.015f) + facing.up * ((h - pocketH) / 2f) + facing.normal * 0.02f, w, h))
         }
         if (ui.popup == Popup.SETTINGS) {
             val w = PanelSizes.SETTINGS_W * DP_M * POCKET_SCALE
             val h = PanelSizes.SETTINGS_H * DP_M * POCKET_SCALE
-            rig[PanelIds.SETTINGS]?.moveTo(pocket.position + facing.right * (pocketW / 2f + w / 2f + 0.015f) + facing.up * ((h - pocketH) / 2f) + facing.normal * 0.02f)
+            rig[PanelIds.SETTINGS]?.moveTo(clearOfLoci(pocket.position + facing.right * (pocketW / 2f + w / 2f + 0.015f) + facing.up * ((h - pocketH) / 2f) + facing.normal * 0.02f, w, h))
         }
         placeNudge()
         placeEdit()
@@ -922,6 +960,8 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         const val DODGE_MARGIN_DEG = 1.5f
         const val DODGE_MAX_DOWN_DEG = 55f
         const val DODGE_EASE = 0.2f
+        const val POPUP_CLEAR_M = 0.2f
+        const val POPUP_MIN_M = 0.45f
         const val KEY_HOLD_MS = 600L
         const val TITLE_RISE_M = 0.12f
         const val CELL_PITCH_X = 0.19f

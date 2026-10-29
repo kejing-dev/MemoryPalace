@@ -170,9 +170,9 @@ private fun SettingsChip(selected: Boolean, onEvent: (PalaceEvent) -> Unit) {
 
 @Composable
 private fun HomeTop(state: PalaceUiState, onEvent: (PalaceEvent) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        PalaceChip(state, onEvent, Modifier.weight(1f, fill = false))
-        Spacer(modifier = Modifier.weight(1f))
+    // QA q10-1: the palace chip takes all the width the settings chip leaves (no spacer sharing it)
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+        PalaceChip(state, onEvent, Modifier.weight(1f, fill = false).padding(end = 8.dp))
         SettingsChip(state.popup == io.embodit.memorypalace.ui.palace.Popup.SETTINGS, onEvent)
     }
 }
