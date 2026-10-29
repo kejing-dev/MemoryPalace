@@ -412,6 +412,8 @@ WHC_PROVINCES = {
     "1335": ["贵州", "福建", "湖南", "广东", "江西", "浙江"],  # 中国丹霞
     "1442": ["河南", "陕西", "甘肃", "新疆"],  # 丝绸之路 (China part)
     "1334": ["浙江"], "1559": ["贵州"], "1606": ["江苏"], "1765": ["江西"],
+    # 巴丹吉林沙漠: the Wikidata item is the desert (Gansu + Inner Mongolia), the listed property lies in 阿拉善盟
+    "1638": ["内蒙古"],
 }
 
 

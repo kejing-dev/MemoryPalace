@@ -45,8 +45,10 @@ import io.embodit.memorypalace.ui.palace.components.PanelSizes
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.atan
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlinx.coroutines.CancellationException
@@ -689,6 +691,63 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
     }
 
     private var lastPocketPressMs = -1L
+    private var pocketBase: Vec3? = null
+    private var pocketShown: Vec3? = null
+    private var dodgeYaw = 0f
+    private var dodgePitch = 0f
+
+    /**
+     * QA q7-2 (profile D17): an open grid of 5 - 8 cards reaches down-left into the pocket panel's corner of the view and
+     * the panel covered card ⑤. Seen from the head, when the panel's angular box overlaps a card of the open level it
+     * eases away by the smaller of two moves (down below the grid, or left of it; down at most to 55°), and eases back
+     * when the grid closes. [base] is where the lazy follow put it.
+     */
+    private fun dodgeOpenGrid(base: Vec3): Vec3 {
+        val head = pose.position
+        val f = pose.level()
+        val fwd = f.at(0f)
+        val left = P2(f.z, -f.x).at(0f)
+        fun yawPitch(p: Vec3): Triple<Float, Float, Float> {
+            val d = p - head
+            val h = hypot(d.dot(fwd), d.dot(left))
+            return Triple(deg(atan2(d.dot(left), d.dot(fwd))), deg(atan2(d.y, h)), d.length)
+        }
+        val (py, pp, pd) = yawPitch(base)
+        var wantYaw = 0f
+        var wantPitch = 0f
+        val cells = if (ui.open != null) openCenters else emptyList()
+        if (cells.isNotEmpty() && pd > 0.05f) {
+            val pw = deg(atan(PanelSizes.POCKET_W * DP_M * POCKET_SCALE / 2f / pd))
+            val ph = deg(atan(PanelSizes.POCKET_H * DP_M * POCKET_SCALE / 2f / pd))
+            var gridLeft = -180f
+            var gridBottom = 90f
+            var hit = false
+            for (c in cells) {
+                val (cy, cp, cd) = yawPitch(c)
+                if (cd < pd) continue // a card nearer than the panel is not covered by it
+                val cw = deg(atan(PanelSizes.CELL_W * DP_M * openScale / 2f / cd))
+                val ch = deg(atan(PanelSizes.CELL_H * DP_M * openScale / 2f / cd))
+                gridLeft = maxOf(gridLeft, cy + cw)
+                gridBottom = minOf(gridBottom, cp - ch)
+                if (abs(cy - py) < cw + pw + DODGE_MARGIN_DEG && abs(cp - pp) < ch + ph + DODGE_MARGIN_DEG) hit = true
+            }
+            if (hit) {
+                val down = (pp + ph) - (gridBottom - DODGE_MARGIN_DEG)
+                val side = (gridLeft + DODGE_MARGIN_DEG) - (py - pw)
+                if (down <= side && pp - down >= -DODGE_MAX_DOWN_DEG) wantPitch = -down else wantYaw = side
+            }
+        }
+        dodgeYaw += (wantYaw - dodgeYaw) * DODGE_EASE
+        dodgePitch += (wantPitch - dodgePitch) * DODGE_EASE
+        if (abs(dodgeYaw - wantYaw) < 0.05f) dodgeYaw = wantYaw
+        if (abs(dodgePitch - wantPitch) < 0.05f) dodgePitch = wantPitch
+        if (dodgeYaw == 0f && dodgePitch == 0f) return base
+        val y = Math.toRadians((py + dodgeYaw).toDouble()).toFloat()
+        val p = Math.toRadians((pp + dodgePitch).toDouble()).toFloat()
+        return head + (fwd * cos(y) + left * sin(y)) * (pd * cos(p)) + Vec3(0f, pd * sin(p), 0f)
+    }
+
+    private fun deg(r: Float): Float = Math.toDegrees(r.toDouble()).toFloat()
 
     /** A control of the pocket panel was pressed: it holds still for a moment. */
     fun onPocketPointer() {
@@ -699,7 +758,13 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         val rig = rig ?: return
         val pocket = rig[PanelIds.POCKET] ?: return
         val hold = ui.popup != null || ui.confirm != null || now - lastPocketPressMs < KEY_HOLD_MS
-        pocketFollow.step(pose, now, hold)?.let { pocket.moveTo(it) }
+        pocketFollow.step(pose, now, hold)?.let { pocketBase = it }
+        val base = pocketBase ?: return
+        val shown = dodgeOpenGrid(base)
+        if (shown != pocketShown) {
+            pocketShown = shown
+            pocket.moveTo(shown)
+        }
         val facing = io.embodit.memorypalace.domain.FacePanel.facing(pocket.position, pose.position, null)
         val pocketH = PanelSizes.POCKET_H * DP_M * POCKET_SCALE
         // v0.3.1 (profile D16): popups stand on the right of the pocket panel (towards the middle of the view), their
@@ -843,7 +908,10 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
     fun planeLines(): List<String> =
         planes.all.map { s -> String.format(Locale.US, "PLANE %s usable=%s center=%s normal=%s", s.label, PlaceRules.usable(s), PalaceLog.pos(s.centroid), PalaceLog.pos(s.normal)) }
 
-    fun parkPanels() = pocketFollow.reset()
+    fun parkPanels() {
+        pocketFollow.reset()
+        pocketBase = null
+    }
 
     companion object {
         const val POCKET_SCALE = 0.75f
@@ -851,6 +919,9 @@ class PalaceScene(private val sink: (PalaceEvent) -> Unit) {
         const val POCKET_DOWN_DEG = 20f
         const val POCKET_M = 0.75f
         const val POCKET_WINDOW_DEG = 35f
+        const val DODGE_MARGIN_DEG = 1.5f
+        const val DODGE_MAX_DOWN_DEG = 55f
+        const val DODGE_EASE = 0.2f
         const val KEY_HOLD_MS = 600L
         const val TITLE_RISE_M = 0.12f
         const val CELL_PITCH_X = 0.19f

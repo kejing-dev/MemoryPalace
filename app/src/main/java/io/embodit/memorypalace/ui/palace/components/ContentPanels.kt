@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -141,10 +142,11 @@ internal fun ColumnScope.ContentView(state: PalaceUiState, onEvent: (PalaceEvent
                 item(key = col.id) {
                     ListItem(
                         headlineContent = { Text(text = col.name, style = PalaceType.title, color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        modifier = Modifier.fillMaxWidth().height(84.dp).clip(RoundedCornerShape(16.dp)).clickable { onEvent(PalaceEvent.LibraryExpand(col.id)) }.probe("lib_${col.id}"),
+                        // QA q7-4: the row grows with its structure line (no fixed height, no ellipsis)
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 84.dp).clip(RoundedCornerShape(16.dp)).clickable { onEvent(PalaceEvent.LibraryExpand(col.id)) }.probe("lib_${col.id}"),
                         supportingContent = {
                             val count = if (col.generated) rs(R.string.lib_generated, col.cards) else rs(R.string.lib_count, col.cards, col.volumes.size)
-                            Text(text = "$count · ${col.structure}", style = PalaceType.body, color = ink2, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text(text = "$count · ${col.structure}", style = PalaceType.body, color = ink2)
                         },
                         trailingContent = { Icon(painter = painterResource(R.drawable.ic_up), contentDescription = null, modifier = Modifier.size(20.dp), tint = ink2) },
                     )
@@ -153,7 +155,7 @@ internal fun ColumnScope.ContentView(state: PalaceUiState, onEvent: (PalaceEvent
                     // v0.3.1: where the cards come from (index.json source + license)
                     if (col.source.isNotBlank()) {
                         item(key = col.id + "_src") {
-                            Text(text = rs(R.string.lib_source, col.source, col.license), style = PalaceType.label, color = ink2, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 24.dp, end = 8.dp).probe("lib_src_${col.id}"))
+                            Text(text = rs(R.string.lib_source, col.source, col.license), style = PalaceType.label, color = ink2, modifier = Modifier.padding(start = 24.dp, end = 8.dp).probe("lib_src_${col.id}"))
                         }
                     }
                     if (col.generated) {
@@ -178,7 +180,7 @@ internal fun ColumnScope.ContentView(state: PalaceUiState, onEvent: (PalaceEvent
         }
         ScrollIndicator(state = list)
     }
-    Text(text = rs(R.string.lib_license), style = PalaceType.label, color = PicoTheme.colorScheme.labelTertiary, maxLines = 2)
+    Text(text = rs(R.string.lib_license), style = PalaceType.label, color = PicoTheme.colorScheme.labelTertiary)
 }
 
 @Composable

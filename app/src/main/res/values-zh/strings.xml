@@ -202,7 +202,7 @@
     <string name="lib_generated">%d 张 · 每次随机</string>
     <string name="lib_volume">%1$d 个位置 · %2$d 张卡</string>
     <string name="lib_new_shuffled">新建一座（随机）</string>
-    <string name="lib_license">全部离线。古诗文原文公有领域；chinese-poetry、ECDICT 数据集 MIT；百科数据来自 Wikidata（CC0），并对照 UNESCO、PubChem、GBIF、nobelprize.org 核对。</string>
+    <string name="lib_license">全部离线。古诗文公有领域；chinese-poetry、ECDICT 为 MIT；百科数据 Wikidata CC0，并经 UNESCO、PubChem、GBIF、nobelprize.org 核对。</string>
     <string name="cat_geo">地理</string>
     <string name="cat_history">历史文化</string>
     <string name="cat_nature">自然</string>

@@ -207,11 +207,11 @@
     <string name="cat_language">Language</string>
     <string name="cat_numbers">Numbers</string>
     <string name="lib_add">Add</string>
-    <string name="lib_count">%1$d cards · %2$d vols</string>
+    <string name="lib_count">%1$d cards · %2$d vol.</string>
     <string name="lib_generated">%d cards · random each time</string>
     <string name="lib_volume">%1$d loci · %2$d cards</string>
     <string name="lib_new_shuffled">New one (shuffled)</string>
-    <string name="lib_license">All offline. Classical texts public domain; chinese-poetry and ECDICT data MIT; encyclopedia data from Wikidata (CC0), checked against UNESCO, PubChem, GBIF and nobelprize.org.</string>
+    <string name="lib_license">All offline. Classics public domain; chinese-poetry, ECDICT MIT; facts Wikidata CC0, checked with UNESCO, PubChem, GBIF, nobelprize.org.</string>
     <string name="cat_geo">Geography</string>
     <string name="cat_history">History</string>
     <string name="cat_nature">Nature</string>
