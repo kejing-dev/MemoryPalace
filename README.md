@@ -8,4 +8,4 @@
 | `4a1393d2` | [memory-palace] showcase · 记忆宫殿 第一跑 | 854 |
 | `c4850b29` | [memory-palace] build #1 · 记忆宫殿 | 3974 |
 | `94c8fcbe` | [memory-palace] design #1 · 设计包 + 样稿 | 3044 |
-| `d5c6f909` | [memory-palace] build · 记忆宫殿 v0.3 | 2187 |
+| `d5c6f909` | [memory-palace] build · 记忆宫殿 v0.3 | 2516 |
