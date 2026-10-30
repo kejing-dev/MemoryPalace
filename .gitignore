@@ -40,3 +40,6 @@ tools/harness/.state/
 tools/test/out/
 __pycache__/
 *.pyc
+
+# > 50 MB，GitHub 拒收（push_wip.py）
+tools/packs/.cache/src/ecdict.csv
