@@ -9,3 +9,4 @@
 | `c4850b29` | [memory-palace] build #1 · 记忆宫殿 | 3974 |
 | `94c8fcbe` | [memory-palace] design #1 · 设计包 + 样稿 | 3044 |
 | `d5c6f909` | [memory-palace] build · 记忆宫殿 v0.3 | 2516 |
+| `c8d57fde` | [memory-palace] release · 记忆宫殿 v0.3.2 | 559 |
